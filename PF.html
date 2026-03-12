@@ -43,6 +43,13 @@
         
         .prompt-section { padding: 16px; border-bottom: 1px solid var(--border-color); }
         .prompt-textarea { width: 100%; height: 60px; background: #fff; border: 1px solid var(--border-color); border-radius: 6px; padding: 8px; font-size: 12px; resize: none; font-family: inherit; }
+        .sim-section { padding: 16px; border-bottom: 1px solid var(--border-color); }
+        .sim-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+        .sim-input { width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 12px; }
+        .sim-hint { font-size: 11px; color: #666; margin: 6px 0; line-height: 1.5; }
+        .sim-events { width: 100%; min-height: 66px; background: #fff; border: 1px solid var(--border-color); border-radius: 6px; padding: 8px; font-size: 12px; resize: vertical; font-family: inherit; }
+        .recommend-list { margin-top: 8px; padding: 8px; border-radius: 6px; background: #f8fbff; border: 1px dashed #c9dcff; }
+        .recommend-list li { margin-left: 16px; font-size: 11px; color: #4a4a4a; line-height: 1.5; }
         
         .graph-container { flex: 1; display: flex; flex-direction: column; background: var(--light-bg); position: relative; }
         .graph-header { height: 50px; background: var(--white-bg); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; border-bottom: 1px solid var(--border-color); }
@@ -120,7 +127,16 @@
             customPrompt: '',
             isBuilding: false,
             buildStep: '',
-            selectedEntity: null
+            selectedEntity: null,
+            simConfig: {
+                envReady: false,
+                rounds: 2,
+                duration: 30,
+                eventsInput: '',
+                recommendedRounds: 2,
+                recommendedDuration: 30,
+                recommendedEvents: []
+            }
         };
         
         const typeColors = {
@@ -529,12 +545,79 @@ JSON格式：
         async function runSandboxSimulation() {
             if (!window.runMultiAgentRoutingDemo) { addLog('多智能体模块未加载', 'error'); return; }
             if (state.graphData.nodes.length === 0) { addLog('请先构建或导入知识图谱', 'info'); return; }
+            if (!state.simConfig.envReady) { addLog('请先点击“构建推演环境”', 'warning'); return; }
             addLog('开始执行图谱驱动的多智能体推演...', 'processing');
-            await window.runMultiAgentRoutingDemo({
+            const result = await window.runMultiAgentRoutingDemo({
                 graphData: state.graphData,
                 llm: callLLM,
-                logger: (msg) => addLog(msg, 'info')
+                logger: (msg) => addLog(msg, 'info'),
+                rounds: Number(state.simConfig.rounds) || 1,
+                duration: Number(state.simConfig.duration) || 30,
+                customEvents: parseCustomEvents(state.simConfig.eventsInput),
+                onRoundComplete: ({ round, graphData }) => {
+                    state.graphData = graphData;
+                    updateStats(graphData);
+                    addLog(`第 ${round} 轮结束，知识图谱已更新`, 'success');
+                    render();
+                }
             });
+            if (result) {
+                state.graphData = result.graphData || state.graphData;
+                updateStats(state.graphData);
+                render();
+            }
+        }
+
+        function parseCustomEvents(text) {
+            return (text || '')
+                .split('\n')
+                .map(line => line.trim())
+                .filter(Boolean)
+                .map((line, idx) => {
+                    const [timePart, ...eventParts] = line.split(':');
+                    const hasTime = eventParts.length > 0;
+                    const eventText = hasTime ? eventParts.join(':').trim() : timePart.trim();
+                    const timeNum = hasTime ? Number(timePart.trim()) : idx + 1;
+                    return {
+                        time: Number.isFinite(timeNum) && timeNum > 0 ? timeNum : idx + 1,
+                        text: eventText || `用户事件${idx + 1}`
+                    };
+                });
+        }
+
+        function recommendSimulationConfig() {
+            const eventNodes = state.graphData.nodes.filter(n => n.type === '关系事件');
+            const people = state.graphData.nodes.filter(n => n.type === '人物');
+            const relationCount = state.graphData.links.filter(l => l.relation === '情侣' || l.relation === '密友' || l.relation === '同事').length;
+
+            const recommendedRounds = Math.max(2, Math.min(6, Math.ceil((eventNodes.length + relationCount) / 2) || 2));
+            const recommendedDuration = Math.max(20, Math.min(180, people.length * 10 || 30));
+            const keyEvents = eventNodes.slice(0, 5).map((n, idx) => `${idx + 1}:${n.name}`);
+
+            state.simConfig.recommendedRounds = recommendedRounds;
+            state.simConfig.recommendedDuration = recommendedDuration;
+            state.simConfig.recommendedEvents = keyEvents;
+
+            if (!state.simConfig.eventsInput.trim()) {
+                state.simConfig.eventsInput = keyEvents.join('\n');
+            }
+            state.simConfig.rounds = recommendedRounds;
+            state.simConfig.duration = recommendedDuration;
+        }
+
+        function buildSimulationEnvironment() {
+            if (state.graphData.nodes.length === 0) {
+                addLog('请先构建或导入知识图谱，再构建推演环境', 'warning');
+                return;
+            }
+            recommendSimulationConfig();
+            state.simConfig.envReady = true;
+            addLog(`推演环境构建完成：推荐轮次${state.simConfig.recommendedRounds}，模拟时长${state.simConfig.recommendedDuration}分钟`, 'success');
+            render();
+        }
+
+        function onSimConfigInput(key, value) {
+            state.simConfig[key] = value;
         }
         
         function renderGraph() {
@@ -637,6 +720,21 @@ JSON格式：
                                 <button class="btn-build btn-build-sm btn-export" onclick="exportGraph()">📤 导出</button>
                             </div>
                         </div>
+                        <div class="sim-section">
+                            <label class="form-label">推演环境配置：</label>
+                            <button class="btn-build" onclick="buildSimulationEnvironment()" ${state.isBuilding?'disabled':''}>🏗️ 构建推演环境</button>
+                            <div class="sim-grid">
+                                <input class="sim-input" type="number" min="1" value="${state.simConfig.rounds}" onchange="onSimConfigInput('rounds', this.value)" ${!state.simConfig.envReady?'disabled':''} placeholder="轮次">
+                                <input class="sim-input" type="number" min="5" value="${state.simConfig.duration}" onchange="onSimConfigInput('duration', this.value)" ${!state.simConfig.envReady?'disabled':''} placeholder="时长(min)">
+                            </div>
+                            <div class="sim-hint">事件输入格式：<b>轮次:事件描述</b>，例如 <b>2:发生争执</b></div>
+                            <textarea class="sim-events" onchange="onSimConfigInput('eventsInput', this.value)" ${!state.simConfig.envReady?'disabled':''}>${state.simConfig.eventsInput}</textarea>
+                            <button class="btn-build" style="margin-top:8px" onclick="runSandboxSimulation()" ${!state.simConfig.envReady?'disabled':''}>▶ 推演</button>
+                            <div class="recommend-list">
+                                <div class="sim-hint">系统推荐：轮次 ${state.simConfig.recommendedRounds}，时长 ${state.simConfig.recommendedDuration} 分钟</div>
+                                <ul>${state.simConfig.recommendedEvents.map(item => `<li>${item}</li>`).join('') || '<li>构建环境后自动生成关键事件</li>'}</ul>
+                            </div>
+                        </div>
                         <div class="prompt-section">
                             <label class="form-label">自定义优化提示词：</label>
                             <textarea id="custom-prompt" class="prompt-textarea" placeholder="额外优化要求...">${state.customPrompt}</textarea>
@@ -649,7 +747,6 @@ JSON格式：
                             <div class="graph-actions">
                                 <button class="btn-icon" onclick="extractGraph()" ${state.isBuilding?'disabled':''}>🔄 刷新</button>
                                 <button class="btn-icon" onclick="toggleType()">${showType?'隐类型':'显类型'}</button>
-                                <button class="btn-icon" onclick="runSandboxSimulation()">▶ 推演</button>
                             </div>
                         </div>
                         <div class="graph-area" id="graph-area">
@@ -698,6 +795,8 @@ JSON格式：
         window.showEntityDetail = showEntityDetail;
         window.hideEntityDetail = hideEntityDetail;
         window.runSandboxSimulation = runSandboxSimulation;
+        window.buildSimulationEnvironment = buildSimulationEnvironment;
+        window.onSimConfigInput = onSimConfigInput;
     </script>
     <script src="multi_agent_sim.js"></script>
 </body>
