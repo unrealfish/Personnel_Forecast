@@ -4,33 +4,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>知识图谱可视化平台</title>
+    <title>星演</title>
     <style>
         :root {
-            --primary-color: #1a73e8;
-            --light-bg: #f5f5f5;
-            --white-bg: #ffffff;
-            --border-color: #e0e0e0;
-            --success-color: #00c853;
-            --warning-color: #ff9800;
+            --primary-color: #0a84ff;
+            --primary-hover: #0066cc;
+            --light-bg: #eef1f5;
+            --white-bg: rgba(255, 255, 255, 0.85);
+            --border-color: rgba(60, 60, 67, 0.16);
+            --success-color: #30d158;
+            --warning-color: #ff9f0a;
+            --surface-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif; background: var(--light-bg); overflow: hidden; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'PingFang SC', sans-serif; background: radial-gradient(circle at 10% 20%, #f6f8fb, #e9edf3 60%, #e3e8f0); overflow: hidden; color: #1d1d1f; }
         
-        .top-navbar { height: 56px; background: #fff; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; border-bottom: 2px solid var(--primary-color); }
-        .logo { display: flex; align-items: center; gap: 10px; font-size: 20px; font-weight: bold; color: var(--primary-color); }
-        .logo-icon { width: 36px; height: 36px; background: var(--primary-color); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; color: #fff; }
+        .top-navbar { height: 56px; background: rgba(255,255,255,0.74); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); display: flex; align-items: center; justify-content: space-between; padding: 0 20px; border-bottom: 1px solid var(--border-color); box-shadow: 0 1px 0 rgba(255,255,255,0.7) inset; }
+        .window-controls { display: flex; align-items: center; gap: 8px; margin-right: 14px; }
+        .window-dot { width: 12px; height: 12px; border-radius: 50%; }
+        .window-dot.red { background: #ff5f57; }
+        .window-dot.yellow { background: #febc2e; }
+        .window-dot.green { background: #28c840; }
+        .logo { display: flex; align-items: center; gap: 10px; font-size: 20px; font-weight: 700; color: #1d1d1f; }
+        .logo-icon { width: 34px; height: 34px; background: linear-gradient(145deg, #6ab7ff, var(--primary-color)); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; color: #fff; box-shadow: 0 6px 14px rgba(10,132,255,0.25); }
         
         .main-container { display: flex; height: calc(100vh - 56px); }
-        .left-sidebar { width: 280px; background: var(--white-bg); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; }
+        .left-sidebar { width: 280px; background: var(--white-bg); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; backdrop-filter: blur(12px); }
         
         .input-section { padding: 16px; border-bottom: 1px solid var(--border-color); }
         .form-label { font-size: 12px; color: #666; margin-bottom: 8px; display: block; }
-        .form-textarea { width: 100%; height: 100px; background: #fff; border: 1px solid var(--border-color); border-radius: 6px; padding: 10px; font-size: 13px; resize: none; font-family: inherit; }
-        .form-textarea:focus { outline: none; border-color: var(--primary-color); }
+        .form-textarea { width: 100%; height: 100px; background: rgba(255,255,255,0.92); border: 1px solid var(--border-color); border-radius: 10px; padding: 10px; font-size: 13px; resize: none; font-family: inherit; }
+        .form-textarea:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(10,132,255,0.16); }
         
-        .btn-build { width: 100%; margin-top: 12px; padding: 10px; background: var(--primary-color); border: none; border-radius: 6px; color: #fff; font-size: 14px; cursor: pointer; }
-        .btn-build:hover { background: #1557b0; }
+        .btn-build { width: 100%; margin-top: 12px; padding: 10px; background: linear-gradient(180deg, #4ea3ff 0%, var(--primary-color) 100%); border: none; border-radius: 10px; color: #fff; font-size: 14px; cursor: pointer; box-shadow: 0 6px 12px rgba(10,132,255,0.24); }
+        .btn-build:hover { background: linear-gradient(180deg, #3295ff 0%, var(--primary-hover) 100%); }
         .btn-build:disabled { opacity: 0.5; cursor: not-allowed; }
         .btn-row { display: flex; gap: 8px; margin-top: 8px; }
         .btn-build-sm { flex: 1; padding: 8px; font-size: 12px; }
@@ -42,33 +49,33 @@
         .btn-export:hover { background: #1557b0; }
         
         .prompt-section { padding: 16px; border-bottom: 1px solid var(--border-color); }
-        .prompt-textarea { width: 100%; height: 60px; background: #fff; border: 1px solid var(--border-color); border-radius: 6px; padding: 8px; font-size: 12px; resize: none; font-family: inherit; }
+        .prompt-textarea { width: 100%; height: 60px; background: rgba(255,255,255,0.92); border: 1px solid var(--border-color); border-radius: 10px; padding: 8px; font-size: 12px; resize: none; font-family: inherit; }
         .sim-section { padding: 16px; border-bottom: 1px solid var(--border-color); }
         .sim-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
-        .sim-input { width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 12px; }
+        .sim-input { width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 10px; font-size: 12px; }
         .sim-hint { font-size: 11px; color: #666; margin: 6px 0; line-height: 1.5; }
-        .sim-events { width: 100%; min-height: 66px; background: #fff; border: 1px solid var(--border-color); border-radius: 6px; padding: 8px; font-size: 12px; resize: vertical; font-family: inherit; }
-        .recommend-list { margin-top: 8px; padding: 8px; border-radius: 6px; background: #f8fbff; border: 1px dashed #c9dcff; }
+        .sim-events { width: 100%; min-height: 66px; background: rgba(255,255,255,0.92); border: 1px solid var(--border-color); border-radius: 10px; padding: 8px; font-size: 12px; resize: vertical; font-family: inherit; }
+        .recommend-list { margin-top: 8px; padding: 8px; border-radius: 10px; background: rgba(239,246,255,0.9); border: 1px dashed rgba(10,132,255,0.4); }
         .recommend-list li { margin-left: 16px; font-size: 11px; color: #4a4a4a; line-height: 1.5; }
         
         .graph-container { flex: 1; display: flex; flex-direction: column; background: var(--light-bg); position: relative; }
         .graph-header { height: 50px; background: var(--white-bg); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; border-bottom: 1px solid var(--border-color); }
         .graph-title { font-size: 14px; color: #666; }
         .graph-actions { display: flex; gap: 8px; }
-        .btn-icon { padding: 6px 12px; border-radius: 6px; background: var(--primary-color); border: 1px solid var(--primary-color); cursor: pointer; font-size: 12px; color: #fff; }
-        .btn-icon:hover { background: #1557b0; border-color: #1557b0; }
+        .btn-icon { padding: 6px 12px; border-radius: 10px; background: rgba(255,255,255,0.95); border: 1px solid var(--border-color); cursor: pointer; font-size: 12px; color: #1d1d1f; }
+        .btn-icon:hover { border-color: var(--primary-color); color: var(--primary-color); }
         
-        .graph-area { flex: 1; position: relative; background: #f0f0f0; }
+        .graph-area { flex: 1; position: relative; background: linear-gradient(180deg, #f8f9fc, #eff2f7); }
         .graph-loading { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #666; }
         
-        .legend { position: absolute; top: 20px; right: 20px; background: #fff; border-radius: 8px; padding: 12px; font-size: 11px; }
+        .legend { position: absolute; top: 20px; right: 20px; background: rgba(255,255,255,0.9); border-radius: 12px; padding: 12px; font-size: 11px; box-shadow: var(--surface-shadow); border: 1px solid var(--border-color); }
         .legend-item { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
         .legend-color { width: 12px; height: 12px; border-radius: 50%; }
         
         /* 实体详情卡片 */
         .entity-detail { 
             position: absolute; top: 20px; left: 20px; width: 280px; 
-            background: #fff; border-radius: 8px; padding: 16px; 
+            background: rgba(255,255,255,0.92); border-radius: 12px; padding: 16px; 
             box-shadow: 0 2px 12px rgba(0,0,0,0.15); display: none; z-index: 100;
         }
         .entity-detail.show { display: block; }
@@ -81,25 +88,25 @@
         .entity-detail-relations h4 { font-size: 12px; color: #666; margin-bottom: 8px; }
         .entity-detail-relation { font-size: 11px; color: #666; padding: 4px 0; }
         
-        .right-panel { width: 300px; background: #fafafa; border-left: 1px solid var(--border-color); display: flex; flex-direction: column; }
+        .right-panel { width: 300px; background: rgba(250,250,252,0.86); border-left: 1px solid var(--border-color); display: flex; flex-direction: column; backdrop-filter: blur(10px); }
         .right-panel.collapsed { width: 42px; min-width: 42px; overflow: hidden; }
-        .reasoning-panel { width: 340px; min-width: 300px; background: #f7faff; border-left: 1px solid var(--border-color); display: flex; flex-direction: column; }
+        .reasoning-panel { width: 340px; min-width: 300px; background: rgba(246,249,255,0.88); border-left: 1px solid var(--border-color); display: flex; flex-direction: column; backdrop-filter: blur(10px); }
         .reasoning-header { padding: 12px 14px; border-bottom: 1px solid var(--border-color); background: #fff; display:flex; align-items:center; justify-content:space-between; }
         .reasoning-waterfall { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 10px; }
-        .reasoning-card { background: #fff; border: 1px solid #d8e7ff; border-radius: 8px; padding: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+        .reasoning-card { background: rgba(255,255,255,0.95); border: 1px solid rgba(10,132,255,0.22); border-radius: 12px; padding: 10px; box-shadow: var(--surface-shadow); }
         .reasoning-card-meta { font-size: 11px; color: #5d7eb2; margin-bottom: 6px; }
         .reasoning-card-text { font-size: 12px; color: #334; line-height: 1.5; white-space: pre-wrap; }
-        .panel-section { padding: 16px; border-bottom: 1px solid var(--border-color); background: #fff; }
+        .panel-section { padding: 16px; border-bottom: 1px solid var(--border-color); background: rgba(255,255,255,0.75); }
         .panel-title { font-size: 13px; font-weight: 600; color: #666; margin-bottom: 12px; }
         .collapse-bar { padding: 8px; border-bottom: 1px solid var(--border-color); background: #fff; display: flex; justify-content: center; }
-        .btn-collapse { width: 100%; padding: 6px; border: 1px solid var(--border-color); border-radius: 6px; background: #fff; cursor: pointer; font-size: 12px; }
+        .btn-collapse { width: 100%; padding: 6px; border: 1px solid var(--border-color); border-radius: 10px; background: rgba(255,255,255,0.9); cursor: pointer; font-size: 12px; }
         .sim-round-list { margin-top: 8px; display: flex; flex-direction: column; gap: 8px; max-height: 260px; overflow-y: auto; }
-        .sim-round-card { border: 1px solid #d8e7ff; border-radius: 8px; background: #fff; padding: 8px; }
+        .sim-round-card { border: 1px solid rgba(10,132,255,0.2); border-radius: 10px; background: rgba(255,255,255,0.92); padding: 8px; }
         .sim-round-title { font-size: 12px; font-weight: 600; color: #2e5fa8; margin-bottom: 6px; }
         .sim-round-item { font-size: 11px; color: #555; margin-bottom: 4px; }
         
         .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-        .stat-card { background: #f5f5f5; padding: 12px; border-radius: 8px; text-align: center; }
+        .stat-card { background: rgba(255,255,255,0.92); padding: 12px; border-radius: 12px; text-align: center; box-shadow: 0 6px 12px rgba(30,41,59,0.08); }
         .stat-value { font-size: 24px; font-weight: bold; color: var(--primary-color); }
         .stat-label { font-size: 11px; color: #666; margin-top: 4px; }
         
@@ -108,10 +115,10 @@
         .tag.entity { background: #e8f5e9; color: #2e7d32; }
         .tag.relation { background: #fff3e0; color: #e65100; }
         
-        .log-panel { flex: 1; background: #fff; display: flex; flex-direction: column; min-height: 100px; }
-        .log-header { height: 36px; background: #f5f5f5; display: flex; align-items: center; padding: 0 16px; border-bottom: 1px solid var(--border-color); }
+        .log-panel { flex: 1; background: rgba(255,255,255,0.75); display: flex; flex-direction: column; min-height: 100px; }
+        .log-header { height: 36px; background: rgba(248,249,252,0.85); display: flex; align-items: center; padding: 0 16px; border-bottom: 1px solid var(--border-color); }
         .log-title { font-size: 12px; color: #666; }
-        .log-content { flex: 1; overflow-y: auto; padding: 8px 16px; font-family: monospace; font-size: 11px; background: #fafafa; }
+        .log-content { flex: 1; overflow-y: auto; padding: 8px 16px; font-family: SFMono-Regular, Menlo, monospace; font-size: 11px; background: rgba(250,250,252,0.85); }
         .log-entry { padding: 2px 0; }
         .log-entry .time { color: #999; margin-right: 8px; }
         .log-entry.info .message { color: #1976d2; }
@@ -866,7 +873,7 @@ JSON格式：
                 : '<div class="sim-hint">完成推演后会生成带时间戳的目录与轮次文件映射</div>';
             
             app.innerHTML = `
-                <nav class="top-navbar"><div class="logo"><div class="logo-icon">🕸️</div><span>知识图谱平台</span></div><span style="font-size:12px;color:#888">KG-v4</span></nav>
+                <nav class="top-navbar"><div style="display:flex;align-items:center;"><div class="window-controls"><span class="window-dot red"></span><span class="window-dot yellow"></span><span class="window-dot green"></span></div><div class="logo"><div class="logo-icon">✨</div><span>星演</span></div></div><span style="font-size:12px;color:#6e6e73">macOS 风格</span></nav>
                 <div class="main-container">
                     <div class="left-sidebar">
                         <div class="input-section">
@@ -910,7 +917,7 @@ JSON格式：
                     </div>
                     <div class="graph-container">
                         <div class="graph-header">
-                            <span class="graph-title">🖥️ 知识图谱可视化</span>
+                            <span class="graph-title">🖥️ 星演可视化</span>
                             <div class="graph-actions">
                                 <button class="btn-icon" onclick="extractGraph()" ${state.isBuilding?'disabled':''}>🔄 刷新</button>
                                 <button class="btn-icon" onclick="toggleType()">${showType?'隐类型':'显类型'}</button>
