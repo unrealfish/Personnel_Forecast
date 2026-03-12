@@ -1,10 +1,24 @@
 (function(global) {
-  const ChannelType = Object.freeze({
-    PRIVATE_CHAT: 'private_chat',
-    GROUP_CHAT: 'group_chat',
-    FACE_TO_FACE: 'face_to_face',
-    ONLINE_INTERACTION: 'online_interaction'
+  const ChannelMode = Object.freeze({
+    ONLINE: 'online',
+    OFFLINE: 'offline',
+    PRIVATE: 'private',
+    GROUP: 'group'
   });
+
+  function normalizeChannel(raw = {}) {
+    const onlineOffline = raw.online_offline || raw.onlineOffline || ChannelMode.ONLINE;
+    const chatScope = raw.chat_scope || raw.chatScope || ChannelMode.PRIVATE;
+    const specific = raw.specific || raw.detail || '未指定';
+    return { online_offline: onlineOffline, chat_scope: chatScope, specific };
+  }
+
+  function deriveLegacyChannelType(channel) {
+    if (channel.chat_scope === ChannelMode.GROUP) {
+      return channel.online_offline === ChannelMode.OFFLINE ? 'offline_group' : 'online_group';
+    }
+    return channel.online_offline === ChannelMode.OFFLINE ? 'offline_private' : 'online_private';
+  }
 
   const PROFILE_RELATION_MAP = {
     '性格为': 'personality',
@@ -48,6 +62,7 @@
 
   class InteractionEvent {
     constructor({
+      channel,
       channelType,
       initiatorId,
       receiverIds = [],
@@ -58,7 +73,12 @@
       groupId = null
     }) {
       this.id = `evt_${Date.now()}_${Math.random().toString(16).slice(2, 8)}`;
-      this.channel_type = channelType;
+      this.channel = normalizeChannel(channel || (channelType ? {
+        onlineOffline: channelType === 'face_to_face' ? ChannelMode.OFFLINE : ChannelMode.ONLINE,
+        chatScope: channelType === 'group_chat' ? ChannelMode.GROUP : ChannelMode.PRIVATE,
+        specific: channelType
+      } : {}));
+      this.channel_type = deriveLegacyChannelType(this.channel);
       this.initiator_id = initiatorId;
       this.receiver_ids = receiverIds;
       this.location = location;
@@ -133,27 +153,27 @@
 
     route(event) {
       const recipients = new Set();
-      switch (event.channel_type) {
-        case ChannelType.PRIVATE_CHAT:
+      switch (event.channel.chat_scope) {
+        case ChannelMode.PRIVATE:
           event.receiver_ids.forEach((id) => recipients.add(id));
           break;
-        case ChannelType.GROUP_CHAT: {
+        case ChannelMode.GROUP: {
           const groupMembers = this.groups.get(event.group_id) || new Set();
-          groupMembers.forEach((id) => recipients.add(id));
+          if (groupMembers.size > 0) {
+            groupMembers.forEach((id) => recipients.add(id));
+          } else if (event.channel.online_offline === ChannelMode.OFFLINE) {
+            this.agents.forEach((agent) => {
+              if (agent.currentLocation === event.location) {
+                recipients.add(agent.profile.id);
+              }
+            });
+          } else {
+            this.agents.forEach((_agent, id) => recipients.add(id));
+          }
           break;
         }
-        case ChannelType.FACE_TO_FACE:
-          this.agents.forEach((agent) => {
-            if (agent.currentLocation === event.location) {
-              recipients.add(agent.profile.id);
-            }
-          });
-          break;
-        case ChannelType.ONLINE_INTERACTION:
-          this.agents.forEach((_agent, id) => recipients.add(id));
-          break;
         default:
-          throw new Error(`Unknown channel_type: ${event.channel_type}`);
+          throw new Error(`Unknown chat_scope: ${event.channel.chat_scope}`);
       }
       recipients.delete(event.initiator_id);
       return recipients;
@@ -175,7 +195,7 @@
 
     async emit(event) {
       const recipients = await this.eventBus.publish(event);
-      this.logger(`[Env] 事件已发布 ${event.channel_type} from=${event.initiator_id} to=[${[...recipients].join(', ')}]`);
+      this.logger(`[Env] 事件已发布 channel={${event.channel.online_offline}/${event.channel.chat_scope}/${event.channel.specific}} from=${event.initiator_id} to=[${[...recipients].join(', ')}]`);
       return recipients;
     }
   }
@@ -273,7 +293,7 @@
 
       if (source.type === '人物' && target.type === '人物') {
         events.push(new InteractionEvent({
-          channelType: ChannelType.PRIVATE_CHAT,
+          channel: { onlineOffline: ChannelMode.ONLINE, chatScope: ChannelMode.PRIVATE, specific: '即时文字私聊' },
           initiatorId: normalizeId(source.id),
           receiverIds: [normalizeId(target.id)],
           action: new Action({
@@ -301,7 +321,7 @@
 
       const groupId = `event_group_${eventId}`;
       events.push(new InteractionEvent({
-        channelType: ChannelType.GROUP_CHAT,
+        channel: { onlineOffline: ChannelMode.ONLINE, chatScope: ChannelMode.GROUP, specific: '事件群组同步' },
         initiatorId: normalizeId(participants[0].id),
         groupId,
         action: new Action({
@@ -312,7 +332,7 @@
       }));
 
       events.push(new InteractionEvent({
-        channelType: ChannelType.FACE_TO_FACE,
+        channel: { onlineOffline: ChannelMode.OFFLINE, chatScope: ChannelMode.GROUP, specific: '线下会面沟通' },
         initiatorId: normalizeId(participants[0].id),
         location,
         action: new Action({
@@ -333,7 +353,7 @@
       const initiator = personNodes[idx % personNodes.length];
       const receiver = personNodes[(idx + 1) % personNodes.length];
       return new InteractionEvent({
-        channelType: ChannelType.PRIVATE_CHAT,
+        channel: { onlineOffline: ChannelMode.ONLINE, chatScope: ChannelMode.PRIVATE, specific: '待LLM补全具体渠道' },
         initiatorId: normalizeId(initiator.id),
         receiverIds: [normalizeId(receiver.id)],
         action: new Action({
@@ -345,29 +365,96 @@
     });
   }
 
-  function updateGraphWithRoundFeedback(graphData, round, eventHistory = []) {
+  function upsertNode(nextGraph, nodeLike) {
+    const existing = nextGraph.nodes.find((n) => normalizeId(n.id) === normalizeId(nodeLike.id));
+    if (existing) {
+      Object.assign(existing, nodeLike);
+      return existing;
+    }
+    nextGraph.nodes.push(nodeLike);
+    return nodeLike;
+  }
+
+  function ensureNodeByName(nextGraph, name, type = '其他', description = '') {
+    const found = nextGraph.nodes.find((n) => n.name === name);
+    if (found) return found;
+    const id = `sim_node_${Date.now()}_${Math.random().toString(16).slice(2, 7)}`;
+    const node = { id, name, type, description };
+    nextGraph.nodes.push(node);
+    return node;
+  }
+
+  function upsertLink(nextGraph, linkLike) {
+    const exists = nextGraph.links.some(
+      (l) => normalizeId(l.source) === normalizeId(linkLike.source)
+        && normalizeId(l.target) === normalizeId(linkLike.target)
+        && l.relation === linkLike.relation
+    );
+    if (!exists) nextGraph.links.push(linkLike);
+  }
+
+  function applyKnowledgeGraphUpdates(nextGraph, kgUpdates = {}, indexes) {
+    const personByName = new Map((nextGraph.nodes || []).filter((n) => n.type === '人物').map((n) => [n.name, n]));
+    (kgUpdates.new_nodes || []).forEach((node) => {
+      if (!node?.name) return;
+      ensureNodeByName(nextGraph, node.name, node.type || '其他', node.description || '推演新增实体');
+    });
+
+    (kgUpdates.new_links || []).forEach((link) => {
+      if (!link?.source || !link?.target || !link?.relation) return;
+      const sourceNode = indexes.nodeById.get(normalizeId(link.source)) || personByName.get(link.source) || ensureNodeByName(nextGraph, link.source);
+      const targetNode = indexes.nodeById.get(normalizeId(link.target)) || personByName.get(link.target) || ensureNodeByName(nextGraph, link.target);
+      upsertLink(nextGraph, { source: sourceNode.id, target: targetNode.id, relation: link.relation });
+    });
+
+    (kgUpdates.person_updates || []).forEach((item) => {
+      const person = indexes.nodeById.get(normalizeId(item.person_id)) || personByName.get(item.person_name);
+      if (!person) return;
+      const appendTraits = (arr, relation, type = '价值观/观点') => {
+        (arr || []).forEach((text) => {
+          if (!text) return;
+          const traitNode = ensureNodeByName(nextGraph, text, type, '推演阶段新增');
+          upsertLink(nextGraph, { source: person.id, target: traitNode.id, relation });
+        });
+      };
+      appendTraits(item.new_skills, '习得技能', '其他');
+      appendTraits(item.new_knowledge, '掌握知识', '其他');
+      appendTraits(item.new_values, '持有观点', '价值观/观点');
+      (item.changed_values || []).forEach((change) => {
+        if (!change?.to) return;
+        const valueNode = ensureNodeByName(nextGraph, change.to, '价值观/观点', change.reason || '推演中的观念变化');
+        upsertLink(nextGraph, { source: person.id, target: valueNode.id, relation: '观念转变为' });
+      });
+    });
+  }
+
+  function updateGraphWithRoundFeedback(graphData, round, roundEvents = [], indexes) {
     const nextGraph = {
       nodes: [...(graphData.nodes || [])],
       links: [...(graphData.links || [])]
     };
-    const summaryName = `第${round}轮反馈`;
-    const summaryId = `round_feedback_${round}`;
-    const exists = nextGraph.nodes.some((n) => normalizeId(n.id) === summaryId);
-    if (!exists) {
-      nextGraph.nodes.push({
-        id: summaryId,
-        name: summaryName,
+    roundEvents.forEach((event, idx) => {
+      if (!event) return;
+      const eventNodeId = `sim_round_${round}_event_${idx + 1}`;
+      const eventNodeName = event.payload?.eventName
+        || `第${round}轮事件${idx + 1}`;
+      const detail = `${event.action?.external_behavior || ''}；渠道=${event.channel.online_offline}/${event.channel.chat_scope}/${event.channel.specific}`;
+      upsertNode(nextGraph, {
+        id: eventNodeId,
+        name: eventNodeName,
         type: '关系事件',
-        description: `基于第${round}轮推演新增，累计事件数：${eventHistory.length}`
+        description: detail
       });
-    }
-    const personNodes = nextGraph.nodes.filter((n) => n.type === '人物');
-    personNodes.forEach((person) => {
-      const linkIdExists = nextGraph.links.some(
-        (l) => normalizeId(l.source) === normalizeId(person.id) && normalizeId(l.target) === summaryId && l.relation === '参与事件'
-      );
-      if (!linkIdExists) {
-        nextGraph.links.push({ source: person.id, target: summaryId, relation: '参与事件' });
+      upsertLink(nextGraph, { source: event.initiator_id, target: eventNodeId, relation: '发起事件' });
+      (event.receiver_ids || []).forEach((rid) => {
+        upsertLink(nextGraph, { source: rid, target: eventNodeId, relation: '参与事件' });
+      });
+      if (event.location && event.location !== 'unknown') {
+        const locationNode = ensureNodeByName(nextGraph, event.location, '地点', '推演触发地点');
+        upsertLink(nextGraph, { source: eventNodeId, target: locationNode.id, relation: '发生地' });
+      }
+      if (event.payload?.kgUpdates) {
+        applyKnowledgeGraphUpdates(nextGraph, event.payload.kgUpdates, indexes);
       }
     });
     return nextGraph;
@@ -377,10 +464,11 @@
     if (typeof llm !== 'function') return event;
     try {
       const prompt = `你是多智能体社交推演助手。请基于给定图谱摘要，为一次互动生成内藏与外显。
-只返回JSON，格式：{"internal_thought":"...","external_behavior":"..."}
+只返回JSON，格式：{"internal_thought":"...","external_behavior":"...","channel_specific":"...","kg_updates":{"new_nodes":[],"new_links":[],"person_updates":[]}}
 
 图谱摘要:${graphSummary}
-渠道:${event.channel_type}
+渠道维度:${event.channel.online_offline}/${event.channel.chat_scope}
+渠道具体:${event.channel.specific}
 发起者:${event.initiator_id}
 接收者:${event.receiver_ids.join(',')}
 地点:${event.location}
@@ -391,6 +479,10 @@
       const parsed = JSON.parse(jsonStr);
       if (parsed.internal_thought) event.action.internal_thought = parsed.internal_thought;
       if (parsed.external_behavior) event.action.external_behavior = parsed.external_behavior;
+      if (parsed.channel_specific) event.channel.specific = parsed.channel_specific;
+      if (parsed.kg_updates && typeof parsed.kg_updates === 'object') {
+        event.payload = { ...(event.payload || {}), kgUpdates: parsed.kg_updates };
+      }
     } catch (_e) {
       // LLM增强失败时回退到图谱规则生成
     }
@@ -442,7 +534,7 @@
       }
 
       agent.onEvent(async (event) => {
-        logger(`[Agent:${agent.profile.name}] 收到 ${event.channel_type} | 发起者=${event.initiator_id} | 外显=${event.action.external_behavior}`);
+        logger(`[Agent:${agent.profile.name}] 收到 ${event.channel.online_offline}/${event.channel.chat_scope}/${event.channel.specific} | 发起者=${event.initiator_id} | 外显=${event.action.external_behavior}`);
       });
 
       env.registerAgent(agent);
@@ -471,27 +563,30 @@
     });
 
     let mutableGraph = graphData;
-    logger(`[Demo] 开始图谱驱动推演，共 ${rounds} 轮，每轮 ${events.length} 个事件。`);
+    logger(`[Demo] 推演任务开始：共 ${rounds} 轮，每轮最多 ${events.length} 个事件。`);
     for (let round = 1; round <= rounds; round += 1) {
-      logger(`[Demo] 第 ${round} 轮开始。`);
+      logger(`[Demo] ===== 第 ${round} 轮开始 =====`);
+      const roundEvents = [];
       for (const event of events) {
         const allowedRound = Number(event.payload?.round || 0);
         if (allowedRound > 0 && allowedRound !== round) continue;
         await enrichActionWithLLM(event, graphSummary, llm);
         await env.emit(event);
+        roundEvents.push(event);
       }
-      mutableGraph = updateGraphWithRoundFeedback(mutableGraph, round, bus.eventHistory);
+      mutableGraph = updateGraphWithRoundFeedback(mutableGraph, round, roundEvents, indexes);
+      logger(`[Demo] ===== 第 ${round} 轮完成：执行 ${roundEvents.length} 个事件，累计 ${bus.eventHistory.length} 条历史 =====`);
       if (onRoundComplete) {
         await onRoundComplete({ round, graphData: mutableGraph, historySize: bus.eventHistory.length });
       }
     }
-    logger('[Demo] 图谱驱动推演完成。');
+    logger('[Demo] 推演任务完成。');
 
     return { env, bus, events, graphData: mutableGraph };
   }
 
   global.MultiAgentSandbox = {
-    ChannelType,
+    ChannelMode,
     AgentProfile,
     AgentState,
     Action,
