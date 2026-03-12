@@ -96,7 +96,10 @@
         
         .right-panel { width: 300px; background: rgba(250,250,252,0.86); border-left: 1px solid var(--border-color); display: flex; flex-direction: column; backdrop-filter: blur(10px); }
         .right-panel.collapsed { width: 42px; min-width: 42px; overflow: hidden; }
+        .people-panel { width: 280px; background: rgba(250,250,252,0.86); border-left: 1px solid var(--border-color); display: flex; flex-direction: column; backdrop-filter: blur(10px); }
+        .people-panel.collapsed { width: 42px; min-width: 42px; overflow: hidden; }
         .reasoning-panel { width: 340px; min-width: 300px; background: rgba(246,249,255,0.88); border-left: 1px solid var(--border-color); display: flex; flex-direction: column; backdrop-filter: blur(10px); }
+        .reasoning-panel.collapsed { width: 42px; min-width: 42px; overflow: hidden; }
         .reasoning-header { padding: 12px 14px; border-bottom: 1px solid var(--border-color); background: #fff; display:flex; align-items:center; justify-content:space-between; }
         .reasoning-waterfall { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 10px; }
         .reasoning-card { background: rgba(255,255,255,0.96); border: 1px solid #b5b5b5; border-radius: 12px; padding: 10px; box-shadow: 0 6px 14px rgba(0,0,0,0.08); }
@@ -113,7 +116,7 @@
         .reasoning-card-text { font-size: 12px; color: #222; line-height: 1.5; white-space: pre-wrap; }
         .panel-section { padding: 16px; border-bottom: 1px solid var(--border-color); background: rgba(255,255,255,0.75); }
         .panel-title { font-size: 13px; font-weight: 600; color: #666; margin-bottom: 12px; }
-        .collapse-bar { padding: 8px; border-bottom: 1px solid var(--border-color); background: #fff; display: flex; justify-content: center; }
+        .collapse-bar { padding: 8px; border-bottom: 1px solid var(--border-color); background: #fff; display: flex; justify-content: flex-end; }
         .btn-collapse { width: 100%; padding: 6px; border: 1px solid var(--border-color); border-radius: 9999px; background: rgba(255,255,255,0.9); cursor: pointer; font-size: 12px; }
         .sim-round-list { margin-top: 8px; display: flex; flex-direction: column; gap: 8px; max-height: 260px; overflow-y: auto; }
         .sim-round-card { border: 1px solid rgba(10,132,255,0.2); border-radius: 10px; background: rgba(255,255,255,0.92); padding: 8px; }
@@ -187,8 +190,9 @@
             agentActivity: {},
             ui: {
                 rightPanelCollapsed: false,
-                simulationCollapsed: false,
-                agentPanelCollapsed: false
+                peoplePanelCollapsed: false,
+                reasoningPanelCollapsed: false,
+                simulationCollapsed: false
             }
         };
         
@@ -489,11 +493,16 @@
             render();
         }
 
-        function toggleAgentPanel() {
-            state.ui.agentPanelCollapsed = !state.ui.agentPanelCollapsed;
+        function togglePeoplePanel() {
+            state.ui.peoplePanelCollapsed = !state.ui.peoplePanelCollapsed;
             render();
         }
-        
+
+        function toggleReasoningPanel() {
+            state.ui.reasoningPanelCollapsed = !state.ui.reasoningPanelCollapsed;
+            render();
+        }
+
         async function extractGraph() {
             if (!state.inputText.trim()) { addLog('请输入文本内容', 'info'); return; }
             state.isBuilding = true; state.buildStep = 'extract';
@@ -1152,22 +1161,15 @@ JSON格式：
                         </div>
                     </div>
                     <div class="right-panel ${state.ui.rightPanelCollapsed ? 'collapsed' : ''}">
-                        <div class="collapse-bar"><button class="btn-collapse" onclick="toggleRightPanel()">${state.ui.rightPanelCollapsed ? '←' : '向右折叠 →'}</button></div>
+                        <div class="collapse-bar"><button class="btn-collapse" style="width:auto;padding:4px 10px" onclick="toggleRightPanel()">${state.ui.rightPanelCollapsed ? '←' : '向右折叠 →'}</button></div>
                         ${state.ui.rightPanelCollapsed ? '' : `
                             <div class="panel-section">
-                                <div class="panel-title">统计信息</div>
+                                <div class="panel-title">图谱信息</div>
                                 <div class="stats-grid">
                                     <div class="stat-card"><div class="stat-value">${state.stats.entities}</div><div class="stat-label">实体</div></div>
                                     <div class="stat-card"><div class="stat-value">${state.stats.relations}</div><div class="stat-label">关系</div></div>
                                     <div class="stat-card"><div class="stat-value">${state.stats.schemas}</div><div class="stat-label">类型</div></div>
                                 </div>
-                            </div>
-                            <div class="panel-section">
-                                <div style="display:flex;justify-content:space-between;align-items:center;" class="agent-panel-toggle">
-                                    <div class="panel-title" style="margin:0">Agent 列表（自主社交）</div>
-                                    <button class="btn-collapse" style="width:auto;padding:4px 8px" onclick="toggleAgentPanel()">${state.ui.agentPanelCollapsed ? '展开 Agent 列表 ↓' : '折叠 Agent 列表 ↑'}</button>
-                                </div>
-                                ${state.ui.agentPanelCollapsed ? '<div class="sim-hint">已折叠</div>' : renderAgentCardsHtml()}
                             </div>
                             <div class="panel-section"><div class="panel-title">实体类型</div><div class="tag-container">${et}</div></div>
                             <div class="panel-section"><div class="panel-title">关系类型</div><div class="tag-container">${rt}</div></div>
@@ -1177,12 +1179,21 @@ JSON格式：
                             </div>
                         `}
                     </div>
-                    <div class="reasoning-panel">
+                    <div class="people-panel ${state.ui.peoplePanelCollapsed ? 'collapsed' : ''}">
+                        <div class="collapse-bar"><button class="btn-collapse" style="width:auto;padding:4px 10px" onclick="togglePeoplePanel()">${state.ui.peoplePanelCollapsed ? '←' : '向右折叠 →'}</button></div>
+                        ${state.ui.peoplePanelCollapsed ? '' : `
+                            <div class="panel-section">
+                                <div class="panel-title">人物列表（自主社交）</div>
+                                ${renderAgentCardsHtml()}
+                            </div>
+                        `}
+                    </div>
+                    <div class="reasoning-panel ${state.ui.reasoningPanelCollapsed ? 'collapsed' : ''}">
                         <div class="reasoning-header">
                             <span class="panel-title" style="margin:0">推演过程</span>
-                            <span style="font-size:11px;color:#666"></span>
+                            <button class="btn-collapse" style="width:auto;padding:4px 10px" onclick="toggleReasoningPanel()">${state.ui.reasoningPanelCollapsed ? '←' : '向右折叠 →'}</button>
                         </div>
-                        <div class="reasoning-waterfall" id="reasoning-waterfall"></div>
+                        ${state.ui.reasoningPanelCollapsed ? '' : '<div class="reasoning-waterfall" id="reasoning-waterfall"></div>'}
                     </div>
                 </div>
             `;
@@ -1213,7 +1224,8 @@ JSON格式：
         window.onSimConfigInput = onSimConfigInput;
         window.toggleRightPanel = toggleRightPanel;
         window.toggleSimulationPanel = toggleSimulationPanel;
-        window.toggleAgentPanel = toggleAgentPanel;
+        window.togglePeoplePanel = togglePeoplePanel;
+        window.toggleReasoningPanel = toggleReasoningPanel;
         window.exportSimulationPackage = exportSimulationPackage;
     </script>
     <script src="multi_agent_sim.js"></script>
