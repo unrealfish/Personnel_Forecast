@@ -115,6 +115,62 @@
         await handler(event, meta, this);
       }
     }
+
+    async handleEvent(event, context = {}) {
+      const { llm, indexes, graphSummary = '{}', memoryWindow = 8 } = context;
+      if (event.initiator_id === this.profile.id || typeof llm !== 'function') return null;
+
+      const initiator = indexes?.nodeById?.get(normalizeId(event.initiator_id));
+      const receiverNames = (event.receiver_ids || [])
+        .map((id) => indexes?.nodeById?.get(normalizeId(id))?.name || id)
+        .join('、') || '群组成员';
+      const memory = (context.eventHistory || [])
+        .slice(-Math.max(1, memoryWindow))
+        .map((item) => {
+          const speaker = indexes?.nodeById?.get(normalizeId(item.initiator_id))?.name || item.initiator_id;
+          return `${speaker}: ${item.action?.external_behavior || ''}`;
+        })
+        .join('\n');
+
+      const prompt = `你正在参与一个多智能体社会推演。你当前扮演角色【${this.profile.name}】。
+角色设定：${this.profile.personaText}
+人格特征：${this.profile.personality || '未提供'}；MBTI：${this.profile.mbti || '未知'}；核心需求：${this.profile.metadata?.coreNeed || '未提供'}。
+
+【全局背景摘要】\n${graphSummary}
+【近期记忆】\n${memory || '暂无'}
+【当前收到事件】
+发起人：${initiator?.name || event.initiator_id}
+接收方：${receiverNames}
+渠道：${event.channel.online_offline}/${event.channel.chat_scope}/${event.channel.specific}
+内容：${event.action?.external_behavior || '无'}
+
+请判断你是否需要回应。若不回应，请将reply_behavior留空。
+严格返回JSON对象，不要使用markdown代码块：
+{"internal_thought":"...","reply_behavior":"...","channel_specific":"...","kg_updates":{"new_nodes":[],"new_links":[],"person_updates":[]}}`;
+
+      const parsed = safeParseJsonObject(await llm(prompt));
+      if (!parsed?.reply_behavior) return null;
+
+      return new InteractionEvent({
+        channel: {
+          onlineOffline: event.channel.online_offline,
+          chatScope: ChannelMode.PRIVATE,
+          specific: parsed.channel_specific || `回应:${event.channel.specific}`
+        },
+        initiatorId: this.profile.id,
+        receiverIds: [event.initiator_id],
+        location: event.location,
+        action: new Action({
+          internalThought: parsed.internal_thought || `${this.profile.name}选择回应`,
+          externalBehavior: parsed.reply_behavior
+        }),
+        payload: {
+          ...(parsed.kg_updates ? { kgUpdates: parsed.kg_updates } : {}),
+          reactionTo: event.id,
+          generatedBy: 'agent_reaction'
+        }
+      });
+    }
   }
 
   class EventBus {
@@ -460,23 +516,91 @@
     return nextGraph;
   }
 
-  async function enrichActionWithLLM(event, graphSummary, llm) {
+  function safeParseJsonObject(rawText) {
+    if (!rawText || typeof rawText !== 'string') return null;
+    const cleaned = rawText
+      .replace(/```json\s*/gi, '')
+      .replace(/```/g, '')
+      .trim();
+
+    const start = cleaned.indexOf('{');
+    if (start < 0) return null;
+    let depth = 0;
+    let inString = false;
+    let escaped = false;
+
+    for (let i = start; i < cleaned.length; i += 1) {
+      const ch = cleaned[i];
+      if (escaped) {
+        escaped = false;
+        continue;
+      }
+      if (ch === '\\') {
+        escaped = true;
+        continue;
+      }
+      if (ch === '"') {
+        inString = !inString;
+        continue;
+      }
+      if (inString) continue;
+      if (ch === '{') depth += 1;
+      if (ch === '}') {
+        depth -= 1;
+        if (depth === 0) {
+          const candidate = cleaned.slice(start, i + 1);
+          try {
+            return JSON.parse(candidate);
+          } catch (_e) {
+            return null;
+          }
+        }
+      }
+    }
+    return null;
+  }
+
+  function buildGraphSummary(indexes) {
+    return JSON.stringify({
+      people: indexes.nodes.filter((n) => n.type === '人物').map((p) => ({ id: p.id, name: p.name })),
+      relations: indexes.links.map((l) => ({
+        source: indexes.nodeById.get(normalizeId(l.source))?.name || l.source,
+        target: indexes.nodeById.get(normalizeId(l.target))?.name || l.target,
+        relation: l.relation
+      }))
+    });
+  }
+
+  function getEventSignature(event) {
+    return [
+      event.initiator_id,
+      [...(event.receiver_ids || [])].sort().join(','),
+      event.channel.online_offline,
+      event.channel.chat_scope,
+      event.channel.specific,
+      event.payload?.relation || '',
+      event.payload?.eventId || '',
+      event.payload?.injectedEvent || ''
+    ].join('|');
+  }
+
+  async function enrichActionWithLLM(event, graphSummary, llm, indexes) {
     if (typeof llm !== 'function') return event;
     try {
+      const initiatorName = indexes?.nodeById?.get(normalizeId(event.initiator_id))?.name || event.initiator_id;
+      const receiverNames = (event.receiver_ids || []).map((id) => indexes?.nodeById?.get(normalizeId(id))?.name || id);
       const prompt = `你是多智能体社交推演助手。请基于给定图谱摘要，为一次互动生成内藏与外显。
 只返回JSON，格式：{"internal_thought":"...","external_behavior":"...","channel_specific":"...","kg_updates":{"new_nodes":[],"new_links":[],"person_updates":[]}}
 
 图谱摘要:${graphSummary}
 渠道维度:${event.channel.online_offline}/${event.channel.chat_scope}
 渠道具体:${event.channel.specific}
-发起者:${event.initiator_id}
-接收者:${event.receiver_ids.join(',')}
+发起者:${initiatorName}
+接收者:${receiverNames.join(',')}
 地点:${event.location}
 当前预设行为:${event.action.external_behavior}`;
-      const text = await llm(prompt);
-      const jsonStr = text?.match(/\{[\s\S]*\}/)?.[0];
-      if (!jsonStr) return event;
-      const parsed = JSON.parse(jsonStr);
+      const parsed = safeParseJsonObject(await llm(prompt));
+      if (!parsed) return event;
       if (parsed.internal_thought) event.action.internal_thought = parsed.internal_thought;
       if (parsed.external_behavior) event.action.external_behavior = parsed.external_behavior;
       if (parsed.channel_specific) event.channel.specific = parsed.channel_specific;
@@ -496,6 +620,8 @@
     const rounds = Math.max(1, Number(options.rounds) || 1);
     const customEvents = Array.isArray(options.customEvents) ? options.customEvents : [];
     const onRoundComplete = typeof options.onRoundComplete === 'function' ? options.onRoundComplete : null;
+    const maxEventsPerRound = Math.max(1, Number(options.maxEventsPerRound) || 64);
+    const maxReactionDepth = Math.max(0, Number(options.maxReactionDepth) || 3);
 
     const indexes = createGraphIndexes(graphData);
     const personNodes = indexes.nodes.filter((n) => n.type === '人物');
@@ -549,32 +675,58 @@
       });
     });
 
-    const baseEvents = buildSimulationEvents(graphData, indexes);
-    const injectedEvents = buildCustomEvents(customEvents, personNodes);
-    const events = [...baseEvents, ...injectedEvents];
+    const events = [];
     if (events.length === 0) {
-      logger('[Demo] 图谱中缺少可推演关系，未生成事件。');
-      return { env, bus, events };
+      logger('[Demo] 将按轮次动态构建事件队列（含Agent自主反应）。');
     }
 
-    const graphSummary = JSON.stringify({
-      people: personNodes.map((p) => p.name),
-      relations: indexes.links.map((l) => ({ source: l.source, target: l.target, relation: l.relation }))
-    });
-
     let mutableGraph = graphData;
-    logger(`[Demo] 推演任务开始：共 ${rounds} 轮，每轮最多 ${events.length} 个事件。`);
+    const executedSeedEventSignatures = new Set();
+    logger(`[Demo] 推演任务开始：共 ${rounds} 轮，每轮最多 ${maxEventsPerRound} 个事件。`);
     for (let round = 1; round <= rounds; round += 1) {
+      const currentIndexes = createGraphIndexes(mutableGraph);
+      const currentPeople = currentIndexes.nodes.filter((n) => n.type === '人物');
+      const graphSummary = buildGraphSummary(currentIndexes);
+
+      const baseEvents = buildSimulationEvents(mutableGraph, currentIndexes)
+        .filter((event) => {
+          const sig = getEventSignature(event);
+          return !executedSeedEventSignatures.has(sig);
+        });
+      const injectedEvents = buildCustomEvents(customEvents, currentPeople)
+        .filter((event) => Number(event.payload?.round || round) === round);
+      const queue = [...baseEvents, ...injectedEvents]
+        .map((event) => ({ event, depth: 0 }));
+
       logger(`[Demo] ===== 第 ${round} 轮开始 =====`);
       const roundEvents = [];
-      for (const event of events) {
-        const allowedRound = Number(event.payload?.round || 0);
-        if (allowedRound > 0 && allowedRound !== round) continue;
-        await enrichActionWithLLM(event, graphSummary, llm);
-        await env.emit(event);
+      while (queue.length > 0 && roundEvents.length < maxEventsPerRound) {
+        const item = queue.shift();
+        const event = item.event;
+        const seedSignature = getEventSignature(event);
+        if (!event.payload?.generatedBy) {
+          executedSeedEventSignatures.add(seedSignature);
+        }
+        await enrichActionWithLLM(event, graphSummary, llm, currentIndexes);
+        const recipients = await env.emit(event);
         roundEvents.push(event);
+
+        if (item.depth >= maxReactionDepth) continue;
+        for (const recipientId of recipients) {
+          const recipientAgent = env.agents.get(recipientId);
+          if (!recipientAgent) continue;
+          const reaction = await recipientAgent.handleEvent(event, {
+            llm,
+            indexes: currentIndexes,
+            graphSummary,
+            eventHistory: bus.eventHistory
+          });
+          if (reaction) {
+            queue.push({ event: reaction, depth: item.depth + 1 });
+          }
+        }
       }
-      mutableGraph = updateGraphWithRoundFeedback(mutableGraph, round, roundEvents, indexes);
+      mutableGraph = updateGraphWithRoundFeedback(mutableGraph, round, roundEvents, currentIndexes);
       logger(`[Demo] ===== 第 ${round} 轮完成：执行 ${roundEvents.length} 个事件，累计 ${bus.eventHistory.length} 条历史 =====`);
       if (onRoundComplete) {
         await onRoundComplete({
@@ -587,7 +739,7 @@
     }
     logger('[Demo] 推演任务完成。');
 
-    return { env, bus, events, graphData: mutableGraph };
+    return { env, bus, events: bus.eventHistory, graphData: mutableGraph };
   }
 
   global.MultiAgentSandbox = {
