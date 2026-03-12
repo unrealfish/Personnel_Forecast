@@ -7,14 +7,18 @@
     <title>星演</title>
     <style>
         :root {
-            --primary-color: #0a84ff;
-            --primary-hover: #0066cc;
+            --primary-color: #1f1f1f;
+            --primary-hover: #000000;
             --light-bg: #eef1f5;
             --white-bg: rgba(255, 255, 255, 0.85);
             --border-color: rgba(60, 60, 67, 0.16);
             --success-color: #30d158;
             --warning-color: #ff9f0a;
             --surface-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
+            --btn-bg: #1f1f1f;
+            --btn-hover: #000;
+            --btn-text: #fff;
+            --btn-muted: #f4f4f4;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'PingFang SC', sans-serif; background: radial-gradient(circle at 10% 20%, #f6f8fb, #e9edf3 60%, #e3e8f0); overflow: hidden; color: #1d1d1f; }
@@ -36,17 +40,17 @@
         .form-textarea { width: 100%; height: 100px; background: rgba(255,255,255,0.92); border: 1px solid var(--border-color); border-radius: 10px; padding: 10px; font-size: 13px; resize: none; font-family: inherit; }
         .form-textarea:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(10,132,255,0.16); }
         
-        .btn-build { width: 100%; margin-top: 12px; padding: 10px; background: linear-gradient(180deg, #4ea3ff 0%, var(--primary-color) 100%); border: none; border-radius: 10px; color: #fff; font-size: 14px; cursor: pointer; box-shadow: 0 6px 12px rgba(10,132,255,0.24); }
-        .btn-build:hover { background: linear-gradient(180deg, #3295ff 0%, var(--primary-hover) 100%); }
+        .btn-build { width: 100%; margin-top: 12px; padding: 10px; background: var(--btn-bg); border: 1px solid #222; border-radius: 10px; color: var(--btn-text); font-size: 14px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.18); }
+        .btn-build:hover { background: var(--btn-hover); }
         .btn-build:disabled { opacity: 0.5; cursor: not-allowed; }
         .btn-row { display: flex; gap: 8px; margin-top: 8px; }
         .btn-build-sm { flex: 1; padding: 8px; font-size: 12px; }
-        .btn-example { background: var(--primary-color); }
-        .btn-optimize { background: var(--primary-color); }
-        .btn-optimize:hover { background: #1557b0; }
-        .btn-import { background: var(--primary-color); }
-        .btn-export { background: var(--primary-color); }
-        .btn-export:hover { background: #1557b0; }
+        .btn-example { background: var(--btn-bg); }
+        .btn-optimize { background: var(--btn-bg); }
+        .btn-optimize:hover { background: var(--btn-hover); }
+        .btn-import { background: var(--btn-bg); }
+        .btn-export { background: var(--btn-bg); }
+        .btn-export:hover { background: var(--btn-hover); }
         
         .prompt-section { padding: 16px; border-bottom: 1px solid var(--border-color); }
         .prompt-textarea { width: 100%; height: 60px; background: rgba(255,255,255,0.92); border: 1px solid var(--border-color); border-radius: 10px; padding: 8px; font-size: 12px; resize: none; font-family: inherit; }
@@ -63,7 +67,7 @@
         .graph-title { font-size: 14px; color: #666; }
         .graph-actions { display: flex; gap: 8px; }
         .btn-icon { padding: 6px 12px; border-radius: 10px; background: rgba(255,255,255,0.95); border: 1px solid var(--border-color); cursor: pointer; font-size: 12px; color: #1d1d1f; }
-        .btn-icon:hover { border-color: var(--primary-color); color: var(--primary-color); }
+        .btn-icon:hover { border-color: #000; color: #000; }
         
         .graph-area { flex: 1; position: relative; background: linear-gradient(180deg, #f8f9fc, #eff2f7); }
         .graph-loading { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #666; }
@@ -93,9 +97,13 @@
         .reasoning-panel { width: 340px; min-width: 300px; background: rgba(246,249,255,0.88); border-left: 1px solid var(--border-color); display: flex; flex-direction: column; backdrop-filter: blur(10px); }
         .reasoning-header { padding: 12px 14px; border-bottom: 1px solid var(--border-color); background: #fff; display:flex; align-items:center; justify-content:space-between; }
         .reasoning-waterfall { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 10px; }
-        .reasoning-card { background: rgba(255,255,255,0.95); border: 1px solid rgba(10,132,255,0.22); border-radius: 12px; padding: 10px; box-shadow: var(--surface-shadow); }
-        .reasoning-card-meta { font-size: 11px; color: #5d7eb2; margin-bottom: 6px; }
-        .reasoning-card-text { font-size: 12px; color: #334; line-height: 1.5; white-space: pre-wrap; }
+        .reasoning-card { background: rgba(255,255,255,0.96); border: 1px solid #b5b5b5; border-radius: 12px; padding: 10px; box-shadow: 0 6px 14px rgba(0,0,0,0.08); }
+        .reasoning-card.card-a { border: 3px solid #202020; }
+        .reasoning-card.card-b { border: 1px solid #777; }
+        .reasoning-card.card-c { border: 1px solid #bbb; border-left: 4px solid #111; }
+        .reasoning-card.card-d { border: 1px solid #bbb; border-right: 4px solid #111; }
+        .reasoning-card-meta { font-size: 11px; color: #444; margin-bottom: 6px; }
+        .reasoning-card-text { font-size: 12px; color: #222; line-height: 1.5; white-space: pre-wrap; }
         .panel-section { padding: 16px; border-bottom: 1px solid var(--border-color); background: rgba(255,255,255,0.75); }
         .panel-title { font-size: 13px; font-weight: 600; color: #666; margin-bottom: 12px; }
         .collapse-bar { padding: 8px; border-bottom: 1px solid var(--border-color); background: #fff; display: flex; justify-content: center; }
@@ -291,11 +299,21 @@
             renderReasoningCards();
         }
 
+        function getReasoningCardClass(card) {
+            if (card.type === 'round') return 'card-a';
+            if (card.type === 'system') return 'card-b';
+            if (card.type === 'initiator') return 'card-c';
+            if (card.type === 'receiver') return 'card-d';
+            if (/发起|initiator|发送/.test(card.text)) return 'card-c';
+            if (/接收|receiver|收到/.test(card.text)) return 'card-d';
+            return 'card-b';
+        }
+
         function renderReasoningCards() {
             const waterfall = document.getElementById('reasoning-waterfall');
             if (!waterfall) return;
             waterfall.innerHTML = state.reasoningCards.map(card => `
-                <div class="reasoning-card">
+                <div class="reasoning-card ${getReasoningCardClass(card)}">
                     <div class="reasoning-card-meta">${card.time}${card.round ? ` · 第 ${card.round} 轮` : ''} · ${card.type}</div>
                     <div class="reasoning-card-text">${card.text}</div>
                 </div>
@@ -690,6 +708,14 @@ JSON格式：
                     downloadJson(graphData, `${folderName.replace('/', '_')}_knowledge_graph_round_${round}.json`);
 
                     pushReasoningCard(`第 ${round} 轮完成并已保存：${simFile} 与 ${kgFile}`, round, 'round');
+                    roundEvents.forEach((evt, idx) => {
+                        if (evt.initiator_id) {
+                            pushReasoningCard(`事件${idx + 1} 发起方：${evt.initiator_id} · ${evt.action?.external_behavior || '无外显行为'}`, round, 'initiator');
+                        }
+                        if (Array.isArray(evt.receiver_ids) && evt.receiver_ids.length > 0) {
+                            pushReasoningCard(`事件${idx + 1} 接收方：${evt.receiver_ids.join('、')}`, round, 'receiver');
+                        }
+                    });
                     addLog(`第 ${round} 轮结束，知识图谱已更新并生成轮次文件`, 'success');
                     render();
                 }
@@ -801,7 +827,7 @@ JSON格式：
                 .force('link', d3.forceLink(links).id(d => d.id).distance(120))
                 .force('charge', d3.forceManyBody().strength(-400))
                 .force('center', d3.forceCenter(width/2, height/2))
-                .force('collision', d3.forceCollide().radius(50));
+                .force('collision', d3.forceCollide().radius(34));
             
             g.append('g').selectAll('line').data(links).enter().append('line')
                 .attr('stroke', d => relationColors[d.relation] || '#555').attr('stroke-width', 2).attr('stroke-opacity', 0.6);
@@ -817,7 +843,7 @@ JSON格式：
                     .on('drag', (e, d) => { d.fx = e.x; d.fy = e.y; })
                     .on('end', (e, d) => { if (!e.active) simulation.alphaTarget(0); d.fx = null; d.fy = null; }));
             
-            node.append('circle').attr('r', showType ? 25 : 18)
+            node.append('circle').attr('r', showType ? 17 : 12)
                 .attr('fill', d => entityTypeColors[typeGroups[d.type] || '其他'] || '#b2dfdb').attr('stroke', '#666').attr('stroke-width', 2);
             
             node.append('text').text(d => d.name.length > 6 ? d.name.substring(0, 6) + '...' : d.name)
@@ -873,7 +899,7 @@ JSON格式：
                 : '<div class="sim-hint">完成推演后会生成带时间戳的目录与轮次文件映射</div>';
             
             app.innerHTML = `
-                <nav class="top-navbar"><div style="display:flex;align-items:center;"><div class="window-controls"><span class="window-dot red"></span><span class="window-dot yellow"></span><span class="window-dot green"></span></div><div class="logo"><div class="logo-icon">✨</div><span>星演</span></div></div><span style="font-size:12px;color:#6e6e73">macOS 风格</span></nav>
+                <nav class="top-navbar"><div class="window-controls"><span class="window-dot red"></span><span class="window-dot yellow"></span><span class="window-dot green"></span></div><div class="logo"><span>星演</span></div></nav>
                 <div class="main-container">
                     <div class="left-sidebar">
                         <div class="input-section">
@@ -900,7 +926,7 @@ JSON格式：
                                 <div class="sim-hint">事件输入格式：<b>轮次:事件描述</b>，例如 <b>2:发生争执</b></div>
                                 <textarea class="sim-events" onchange="onSimConfigInput('eventsInput', this.value)" ${!state.simConfig.envReady?'disabled':''}>${state.simConfig.eventsInput}</textarea>
                                 <button class="btn-build" style="margin-top:8px" onclick="runSandboxSimulation()" ${!state.simConfig.envReady?'disabled':''}>▶ 推演</button>
-                                <button class="btn-build" style="margin-top:8px;background:#546e7a" onclick="exportSimulationPackage()">📦 导出完整推演包</button>
+                                <button class="btn-build" style="margin-top:8px;background:#2c2c2c" onclick="exportSimulationPackage()">📦 导出完整推演包</button>
                                 ${runInfo}
                                 <div class="sim-round-list">${roundCardsHtml}</div>
                                 <div class="recommend-list">
@@ -950,8 +976,8 @@ JSON格式：
                     </div>
                     <div class="reasoning-panel">
                         <div class="reasoning-header">
-                            <span class="panel-title" style="margin:0">🧠 模拟推理文字过程</span>
-                            <span style="font-size:11px;color:#789">卡片瀑布</span>
+                            <span class="panel-title" style="margin:0">推演过程</span>
+                            <span style="font-size:11px;color:#666">推演过程</span>
                         </div>
                         <div class="reasoning-waterfall" id="reasoning-waterfall"></div>
                     </div>
