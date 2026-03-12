@@ -526,7 +526,7 @@ JSON格式：
 
 【实体类型】人物、MBTI类型、星座、职业、学历、专业、家庭氛围、资产/财务、价值观/观点、压力与焦虑、休闲方式、核心需求、地点、关系事件、心理状态/创伤
 
-【关系类型】情侣、密友、父子/父女/母女、亲戚、夫妻、前任、性格为、属于星座、职业为、最高学历为、主修专业、成长于、持有资产、持有观点、面临压力、爱好是、渴求、参与事件、发生地、曾遭遇、关注/干预、推荐/建议
+【关系类型】情侣、密友、父子/父女/母女/母子、兄弟/姐妹、同事、熟人、朋友、亲戚、夫妻、前任、性格为、星座为、职业为、最高学历为、主修专业、成长于、持有资产、持有观点、面临压力、爱好是、渴求、参与事件、发生地、曾遭遇、关注/干预、推荐/建议
 
 当前图谱数据：
 - 实体: ${JSON.stringify(entities.map(e => ({id: e.id, name: e.name, type: e.type, description: e.description})))}
@@ -983,7 +983,7 @@ JSON格式：
             
             const btnText = state.isBuilding 
                 ? (state.buildStep === 'review' ? '⏳ 审阅优化中...' : '⏳ 构建中...') 
-                : '🔨 构建知识图谱';
+                : '构建星演图谱';
             const roundCardsHtml = state.roundRecords.length
                 ? state.roundRecords.map(item => `
                     <div class="sim-round-card">
@@ -997,26 +997,31 @@ JSON格式：
                 : '<div class="sim-hint">完成推演后会生成带时间戳的目录与轮次文件映射</div>';
             
             app.innerHTML = `
-                <nav class="top-navbar"><div class="nav-left"><div class="logo"><span>星演</span></div><div class="window-controls"><span class="window-dot red"></span><span class="window-dot yellow"></span><span class="window-dot green"></span></div></div><div class="nav-version">v1.0.0</div></nav>
+                <nav class="top-navbar"><div class="nav-left"><div class="window-controls"><span class="window-dot red"></span><div class="logo"><span>星演</span></div><span class="window-dot yellow"></span></div></div><div class="nav-version">v1.0.0</div></nav>
                 <div class="main-container">
                     <div class="left-sidebar">
                         <div class="input-section">
                             <label class="form-label">输入文本内容：</label>
                             <textarea id="input-text" class="form-textarea" placeholder="请输入需要分析的文本...">${state.inputText}</textarea>
                             <button class="btn-build" onclick="extractGraph()" ${state.isBuilding?'disabled':''}>${btnText}</button>
+                        <div class="prompt-section">
+                            <label class="form-label">自定义优化提示词：</label>
+                            <textarea id="custom-prompt" class="prompt-textarea" placeholder="额外优化要求...">${state.customPrompt}</textarea>
+                            <button class="btn-build btn-optimize" onclick="runOptimization()" ${state.isBuilding?'disabled':''}>重新优化</button>
+                        </div>
                             <div class="btn-row">
-                                <button class="btn-build btn-build-sm btn-example" onclick="loadExample()" ${state.isBuilding?'disabled':''}>📋 示例</button>
-                                <button class="btn-build btn-build-sm btn-import" onclick="triggerImport()">📥 导入</button>
-                                <button class="btn-build btn-build-sm btn-export" onclick="exportGraph()">📤 导出</button>
+                                <button class="btn-build btn-build-sm btn-import" onclick="triggerImport()">导入图谱</button>
+                                <button class="btn-build btn-build-sm btn-export" onclick="exportGraph()">导出图谱</button>
                             </div>
                         </div>
                         <div class="sim-section">
                             <div style="display:flex;justify-content:space-between;align-items:center;">
                                 <label class="form-label" style="margin:0">推演环境配置：</label>
-                                <button class="btn-collapse" style="width:auto;padding:4px 8px" onclick="toggleSimulationPanel()">${state.ui.simulationCollapsed ? '展开推演内容' : '折叠推演内容'}</button>
+                                <button class="btn-collapse" style="width:auto;padding:4px 8px" onclick="toggleSimulationPanel()">${state.ui.simulationCollapsed ? '展开环境配置 ↓' : '折叠环境配置 ↑'}</button>
                             </div>
                             ${state.ui.simulationCollapsed ? '' : `
-                                <button class="btn-build" onclick="buildSimulationEnvironment()" ${state.isBuilding?'disabled':''}>🏗️ 构建推演环境</button>
+                                <button class="btn-build" onclick="buildSimulationEnvironment()" ${state.isBuilding?'disabled':''}>构建推演环境</button>
+                                <p style="font-size:11px;font-weight:bold;margin-bottom:6px;margin-top:12px">推演参数</p>
                                 <div class="sim-grid">
                                     <input class="sim-input" type="number" min="1" value="${state.simConfig.rounds}" onchange="onSimConfigInput('rounds', this.value)" ${!state.simConfig.envReady?'disabled':''} placeholder="轮次">
                                     <input class="sim-input" type="number" min="5" value="${state.simConfig.duration}" onchange="onSimConfigInput('duration', this.value)" ${!state.simConfig.envReady?'disabled':''} placeholder="时长(min)">
@@ -1024,7 +1029,7 @@ JSON格式：
                                 <div class="sim-hint">事件输入格式：<b>轮次:事件描述</b>，例如 <b>2:发生争执</b></div>
                                 <textarea class="sim-events" onchange="onSimConfigInput('eventsInput', this.value)" ${!state.simConfig.envReady?'disabled':''}>${state.simConfig.eventsInput}</textarea>
                                 <button class="btn-build" style="margin-top:8px" onclick="runSandboxSimulation()" ${!state.simConfig.envReady?'disabled':''}>▶ 推演</button>
-                                <button class="btn-build" style="margin-top:8px;background:#7b8088" onclick="exportSimulationPackage()">📦 导出完整推演包</button>
+                                <button class="btn-build" style="margin-top:8px;background:#7b8088" onclick="exportSimulationPackage()">导出完整推演包</button>
                                 ${runInfo}
                                 <div class="sim-round-list">${roundCardsHtml}</div>
                                 <div class="recommend-list">
@@ -1033,41 +1038,37 @@ JSON格式：
                                 </div>
                             `}
                         </div>
-                        <div class="prompt-section">
-                            <label class="form-label">自定义优化提示词：</label>
-                            <textarea id="custom-prompt" class="prompt-textarea" placeholder="额外优化要求...">${state.customPrompt}</textarea>
-                            <button class="btn-build btn-optimize" onclick="runOptimization()" ${state.isBuilding?'disabled':''}>✨ 重新优化</button>
-                        </div>
+
                     </div>
                     <div class="graph-container">
                         <div class="graph-header">
-                            <span class="graph-title">🖥️ 星演可视化</span>
+                            <span class="graph-title">🖥️ 星演图谱</span>
                             <div class="graph-actions">
-                                <button class="btn-icon" onclick="extractGraph()" ${state.isBuilding?'disabled':''}>🔄 刷新</button>
-                                <button class="btn-icon" onclick="toggleType()">${showType?'隐类型':'显类型'}</button>
+                                <button class="btn-icon" onclick="extractGraph()" ${state.isBuilding?'disabled':''}>刷新</button>
+                                <button class="btn-icon" onclick="toggleType()">${showType?'隐藏类型':'显示类型'}</button>
                             </div>
                         </div>
                         <div class="graph-area" id="graph-area">
                             <svg id="graph-svg"></svg>
-                            ${state.graphData.nodes.length === 0 ? '<div class="graph-loading"><div style="font-size:48px;margin-bottom:20px">🕸️</div><p>请输入文本构建知识图谱</p></div>' : ''}
+                            ${state.graphData.nodes.length === 0 ? '<div class="graph-loading"><div style="font-size:48px;margin-bottom:20px">🕸️</div><p>请输入文本构建星演图谱</p></div>' : ''}
                             ${legendHtml ? `<div class="legend">${legendHtml}</div>` : ''}
                         </div>
                     </div>
                     <div class="right-panel ${state.ui.rightPanelCollapsed ? 'collapsed' : ''}">
-                        <div class="collapse-bar"><button class="btn-collapse" onclick="toggleRightPanel()">${state.ui.rightPanelCollapsed ? '⟨' : '⟩ 折叠右侧'}</button></div>
+                        <div class="collapse-bar"><button class="btn-collapse" onclick="toggleRightPanel()">${state.ui.rightPanelCollapsed ? '←' : '向右折叠 →'}</button></div>
                         ${state.ui.rightPanelCollapsed ? '' : `
                             <div class="panel-section">
-                                <div class="panel-title">📊 统计信息</div>
+                                <div class="panel-title">统计信息</div>
                                 <div class="stats-grid">
                                     <div class="stat-card"><div class="stat-value">${state.stats.entities}</div><div class="stat-label">实体</div></div>
                                     <div class="stat-card"><div class="stat-value">${state.stats.relations}</div><div class="stat-label">关系</div></div>
                                     <div class="stat-card"><div class="stat-value">${state.stats.schemas}</div><div class="stat-label">类型</div></div>
                                 </div>
                             </div>
-                            <div class="panel-section"><div class="panel-title">🏷️ 实体类型</div><div class="tag-container">${et}</div></div>
-                            <div class="panel-section"><div class="panel-title">🔗 关系类型</div><div class="tag-container">${rt}</div></div>
+                            <div class="panel-section"><div class="panel-title">实体类型</div><div class="tag-container">${et}</div></div>
+                            <div class="panel-section"><div class="panel-title">关系类型</div><div class="tag-container">${rt}</div></div>
                             <div class="log-panel">
-                                <div class="log-header"><span class="log-title">📝 系统日志</span></div>
+                                <div class="log-header"><span class="log-title">系统日志</span></div>
                                 <div class="log-content" id="log-content">${state.logs.map(l => `<div class="log-entry ${l.type}"><span class="time">${l.time}</span><span class="message">${l.message}</span></div>`).join('')}</div>
                             </div>
                         `}
@@ -1075,7 +1076,7 @@ JSON格式：
                     <div class="reasoning-panel">
                         <div class="reasoning-header">
                             <span class="panel-title" style="margin:0">推演过程</span>
-                            <span style="font-size:11px;color:#666">推演过程</span>
+                            <span style="font-size:11px;color:#666"></span>
                         </div>
                         <div class="reasoning-waterfall" id="reasoning-waterfall"></div>
                     </div>
