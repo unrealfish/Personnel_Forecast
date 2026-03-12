@@ -577,7 +577,12 @@
       mutableGraph = updateGraphWithRoundFeedback(mutableGraph, round, roundEvents, indexes);
       logger(`[Demo] ===== 第 ${round} 轮完成：执行 ${roundEvents.length} 个事件，累计 ${bus.eventHistory.length} 条历史 =====`);
       if (onRoundComplete) {
-        await onRoundComplete({ round, graphData: mutableGraph, historySize: bus.eventHistory.length });
+        await onRoundComplete({
+          round,
+          graphData: mutableGraph,
+          historySize: bus.eventHistory.length,
+          roundEvents
+        });
       }
     }
     logger('[Demo] 推演任务完成。');

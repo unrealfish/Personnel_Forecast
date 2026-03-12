@@ -82,8 +82,21 @@
         .entity-detail-relation { font-size: 11px; color: #666; padding: 4px 0; }
         
         .right-panel { width: 300px; background: #fafafa; border-left: 1px solid var(--border-color); display: flex; flex-direction: column; }
+        .right-panel.collapsed { width: 42px; min-width: 42px; overflow: hidden; }
+        .reasoning-panel { width: 340px; min-width: 300px; background: #f7faff; border-left: 1px solid var(--border-color); display: flex; flex-direction: column; }
+        .reasoning-header { padding: 12px 14px; border-bottom: 1px solid var(--border-color); background: #fff; display:flex; align-items:center; justify-content:space-between; }
+        .reasoning-waterfall { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 10px; }
+        .reasoning-card { background: #fff; border: 1px solid #d8e7ff; border-radius: 8px; padding: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+        .reasoning-card-meta { font-size: 11px; color: #5d7eb2; margin-bottom: 6px; }
+        .reasoning-card-text { font-size: 12px; color: #334; line-height: 1.5; white-space: pre-wrap; }
         .panel-section { padding: 16px; border-bottom: 1px solid var(--border-color); background: #fff; }
         .panel-title { font-size: 13px; font-weight: 600; color: #666; margin-bottom: 12px; }
+        .collapse-bar { padding: 8px; border-bottom: 1px solid var(--border-color); background: #fff; display: flex; justify-content: center; }
+        .btn-collapse { width: 100%; padding: 6px; border: 1px solid var(--border-color); border-radius: 6px; background: #fff; cursor: pointer; font-size: 12px; }
+        .sim-round-list { margin-top: 8px; display: flex; flex-direction: column; gap: 8px; max-height: 260px; overflow-y: auto; }
+        .sim-round-card { border: 1px solid #d8e7ff; border-radius: 8px; background: #fff; padding: 8px; }
+        .sim-round-title { font-size: 12px; font-weight: 600; color: #2e5fa8; margin-bottom: 6px; }
+        .sim-round-item { font-size: 11px; color: #555; margin-bottom: 4px; }
         
         .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
         .stat-card { background: #f5f5f5; padding: 12px; border-radius: 8px; text-align: center; }
@@ -136,6 +149,13 @@
                 recommendedRounds: 2,
                 recommendedDuration: 30,
                 recommendedEvents: []
+            },
+            reasoningCards: [],
+            roundRecords: [],
+            currentSimRun: null,
+            ui: {
+                rightPanelCollapsed: false,
+                simulationCollapsed: false
             }
         };
         
@@ -221,6 +241,81 @@
                 logContent.innerHTML = state.logs.map(l => `<div class="log-entry ${l.type}"><span class="time">${l.time}</span><span class="message">${l.message}</span></div>`).join('');
                 logContent.scrollTop = logContent.scrollHeight;
             }
+        }
+
+        function getSimRunFolderName() {
+            const t = new Date();
+            const pad = n => String(n).padStart(2, '0');
+            return `simulation_${t.getFullYear()}${pad(t.getMonth() + 1)}${pad(t.getDate())}_${pad(t.getHours())}${pad(t.getMinutes())}${pad(t.getSeconds())}`;
+        }
+
+        function createRoundRecord(round, roundEvents = [], graphData = state.graphData) {
+            return {
+                round,
+                timestamp: new Date().toISOString(),
+                events: roundEvents.map((evt, idx) => ({
+                    index: idx + 1,
+                    channel: evt.channel,
+                    initiatorId: evt.initiator_id,
+                    receiverIds: evt.receiver_ids,
+                    location: evt.location,
+                    dialogue: evt.action?.external_behavior || '',
+                    internalThought: evt.action?.internal_thought || '',
+                    payload: evt.payload || {}
+                })),
+                graphStats: {
+                    nodes: graphData?.nodes?.length || 0,
+                    links: graphData?.links?.length || 0
+                }
+            };
+        }
+
+        function pushReasoningCard(text, round = null, type = 'trace') {
+            state.reasoningCards = [...state.reasoningCards, {
+                id: `rc_${Date.now()}_${Math.random().toString(16).slice(2, 7)}`,
+                time: new Date().toLocaleTimeString(),
+                round,
+                type,
+                text
+            }];
+            if (state.reasoningCards.length > 300) {
+                state.reasoningCards = state.reasoningCards.slice(-300);
+            }
+            renderReasoningCards();
+        }
+
+        function renderReasoningCards() {
+            const waterfall = document.getElementById('reasoning-waterfall');
+            if (!waterfall) return;
+            waterfall.innerHTML = state.reasoningCards.map(card => `
+                <div class="reasoning-card">
+                    <div class="reasoning-card-meta">${card.time}${card.round ? ` · 第 ${card.round} 轮` : ''} · ${card.type}</div>
+                    <div class="reasoning-card-text">${card.text}</div>
+                </div>
+            `).join('');
+            waterfall.scrollTop = waterfall.scrollHeight;
+        }
+
+        function downloadJson(data, filename) {
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+        }
+
+        function toggleRightPanel() {
+            state.ui.rightPanelCollapsed = !state.ui.rightPanelCollapsed;
+            render();
+        }
+
+        function toggleSimulationPanel() {
+            state.ui.simulationCollapsed = !state.ui.simulationCollapsed;
+            render();
         }
         
         async function extractGraph() {
@@ -546,18 +641,49 @@ JSON格式：
             if (!window.runMultiAgentRoutingDemo) { addLog('多智能体模块未加载', 'error'); return; }
             if (state.graphData.nodes.length === 0) { addLog('请先构建或导入知识图谱', 'info'); return; }
             if (!state.simConfig.envReady) { addLog('请先点击“构建推演环境”', 'warning'); return; }
-            addLog('开始执行图谱驱动的多智能体推演...', 'processing');
+
+            const folderName = getSimRunFolderName();
+            state.currentSimRun = {
+                folderName,
+                startedAt: new Date().toISOString(),
+                rounds: Number(state.simConfig.rounds) || 1,
+                simulationFiles: [],
+                kgFiles: []
+            };
+            state.reasoningCards = [];
+            state.roundRecords = [];
+
+            addLog(`开始执行图谱驱动的多智能体推演，输出目录：${folderName}`, 'processing');
+            pushReasoningCard(`推演开始，目录：${folderName}`, null, 'system');
+            render();
+
             const result = await window.runMultiAgentRoutingDemo({
                 graphData: state.graphData,
                 llm: callLLM,
-                logger: (msg) => addLog(msg, 'info'),
+                logger: (msg) => {
+                    addLog(msg, 'info');
+                    const roundMatch = msg.match(/第\s*(\d+)\s*轮/);
+                    pushReasoningCard(msg, roundMatch ? Number(roundMatch[1]) : null, 'trace');
+                },
                 rounds: Number(state.simConfig.rounds) || 1,
                 duration: Number(state.simConfig.duration) || 30,
                 customEvents: parseCustomEvents(state.simConfig.eventsInput),
-                onRoundComplete: ({ round, graphData }) => {
+                onRoundComplete: ({ round, graphData, roundEvents = [] }) => {
                     state.graphData = graphData;
                     updateStats(graphData);
-                    addLog(`第 ${round} 轮结束，知识图谱已更新`, 'success');
+
+                    const simFile = `${folderName}/simulation_round_${round}.json`;
+                    const kgFile = `${folderName}/knowledge_graph_round_${round}.json`;
+                    const roundRecord = createRoundRecord(round, roundEvents, graphData);
+                    state.roundRecords.push(roundRecord);
+                    state.currentSimRun.simulationFiles.push({ file: simFile, content: roundRecord });
+                    state.currentSimRun.kgFiles.push({ file: kgFile, content: graphData });
+
+                    downloadJson(roundRecord, `${folderName.replace('/', '_')}_simulation_round_${round}.json`);
+                    downloadJson(graphData, `${folderName.replace('/', '_')}_knowledge_graph_round_${round}.json`);
+
+                    pushReasoningCard(`第 ${round} 轮完成并已保存：${simFile} 与 ${kgFile}`, round, 'round');
+                    addLog(`第 ${round} 轮结束，知识图谱已更新并生成轮次文件`, 'success');
                     render();
                 }
             });
@@ -583,6 +709,28 @@ JSON格式：
                         text: eventText || `用户事件${idx + 1}`
                     };
                 });
+        }
+
+        function exportSimulationPackage() {
+            if (!state.currentSimRun) {
+                addLog('暂无可导出的推演包，请先执行推演', 'warning');
+                return;
+            }
+            const folderName = state.currentSimRun.folderName;
+            const packageData = {
+                folder: folderName,
+                exportedAt: new Date().toISOString(),
+                rounds: state.currentSimRun.rounds,
+                mapping: state.currentSimRun.simulationFiles.map((file, idx) => ({
+                    round: idx + 1,
+                    simulationFile: file.file,
+                    knowledgeGraphFile: state.currentSimRun.kgFiles[idx]?.file || ''
+                })),
+                simulationFiles: state.currentSimRun.simulationFiles,
+                knowledgeGraphFiles: state.currentSimRun.kgFiles
+            };
+            downloadJson(packageData, `${folderName}_package.json`);
+            addLog(`已导出完整推演包：${folderName}_package.json`, 'success');
         }
 
         function recommendSimulationConfig() {
@@ -705,6 +853,17 @@ JSON格式：
             const btnText = state.isBuilding 
                 ? (state.buildStep === 'review' ? '⏳ 审阅优化中...' : '⏳ 构建中...') 
                 : '🔨 构建知识图谱';
+            const roundCardsHtml = state.roundRecords.length
+                ? state.roundRecords.map(item => `
+                    <div class="sim-round-card">
+                        <div class="sim-round-title">第 ${item.round} 轮 · ${item.events.length} 个事件</div>
+                        ${item.events.slice(0, 3).map(evt => `<div class="sim-round-item">• ${evt.dialogue || '（无外显对话）'}</div>`).join('')}
+                    </div>
+                `).join('')
+                : '<div class="sim-hint">尚未开始推演</div>';
+            const runInfo = state.currentSimRun
+                ? `<div class="sim-hint">当前目录：<b>${state.currentSimRun.folderName}</b></div>`
+                : '<div class="sim-hint">完成推演后会生成带时间戳的目录与轮次文件映射</div>';
             
             app.innerHTML = `
                 <nav class="top-navbar"><div class="logo"><div class="logo-icon">🕸️</div><span>知识图谱平台</span></div><span style="font-size:12px;color:#888">KG-v4</span></nav>
@@ -721,19 +880,27 @@ JSON格式：
                             </div>
                         </div>
                         <div class="sim-section">
-                            <label class="form-label">推演环境配置：</label>
-                            <button class="btn-build" onclick="buildSimulationEnvironment()" ${state.isBuilding?'disabled':''}>🏗️ 构建推演环境</button>
-                            <div class="sim-grid">
-                                <input class="sim-input" type="number" min="1" value="${state.simConfig.rounds}" onchange="onSimConfigInput('rounds', this.value)" ${!state.simConfig.envReady?'disabled':''} placeholder="轮次">
-                                <input class="sim-input" type="number" min="5" value="${state.simConfig.duration}" onchange="onSimConfigInput('duration', this.value)" ${!state.simConfig.envReady?'disabled':''} placeholder="时长(min)">
+                            <div style="display:flex;justify-content:space-between;align-items:center;">
+                                <label class="form-label" style="margin:0">推演环境配置：</label>
+                                <button class="btn-collapse" style="width:auto;padding:4px 8px" onclick="toggleSimulationPanel()">${state.ui.simulationCollapsed ? '展开推演内容' : '折叠推演内容'}</button>
                             </div>
-                            <div class="sim-hint">事件输入格式：<b>轮次:事件描述</b>，例如 <b>2:发生争执</b></div>
-                            <textarea class="sim-events" onchange="onSimConfigInput('eventsInput', this.value)" ${!state.simConfig.envReady?'disabled':''}>${state.simConfig.eventsInput}</textarea>
-                            <button class="btn-build" style="margin-top:8px" onclick="runSandboxSimulation()" ${!state.simConfig.envReady?'disabled':''}>▶ 推演</button>
-                            <div class="recommend-list">
-                                <div class="sim-hint">系统推荐：轮次 ${state.simConfig.recommendedRounds}，时长 ${state.simConfig.recommendedDuration} 分钟</div>
-                                <ul>${state.simConfig.recommendedEvents.map(item => `<li>${item}</li>`).join('') || '<li>构建环境后自动生成关键事件</li>'}</ul>
-                            </div>
+                            ${state.ui.simulationCollapsed ? '' : `
+                                <button class="btn-build" onclick="buildSimulationEnvironment()" ${state.isBuilding?'disabled':''}>🏗️ 构建推演环境</button>
+                                <div class="sim-grid">
+                                    <input class="sim-input" type="number" min="1" value="${state.simConfig.rounds}" onchange="onSimConfigInput('rounds', this.value)" ${!state.simConfig.envReady?'disabled':''} placeholder="轮次">
+                                    <input class="sim-input" type="number" min="5" value="${state.simConfig.duration}" onchange="onSimConfigInput('duration', this.value)" ${!state.simConfig.envReady?'disabled':''} placeholder="时长(min)">
+                                </div>
+                                <div class="sim-hint">事件输入格式：<b>轮次:事件描述</b>，例如 <b>2:发生争执</b></div>
+                                <textarea class="sim-events" onchange="onSimConfigInput('eventsInput', this.value)" ${!state.simConfig.envReady?'disabled':''}>${state.simConfig.eventsInput}</textarea>
+                                <button class="btn-build" style="margin-top:8px" onclick="runSandboxSimulation()" ${!state.simConfig.envReady?'disabled':''}>▶ 推演</button>
+                                <button class="btn-build" style="margin-top:8px;background:#546e7a" onclick="exportSimulationPackage()">📦 导出完整推演包</button>
+                                ${runInfo}
+                                <div class="sim-round-list">${roundCardsHtml}</div>
+                                <div class="recommend-list">
+                                    <div class="sim-hint">系统推荐：轮次 ${state.simConfig.recommendedRounds}，时长 ${state.simConfig.recommendedDuration} 分钟</div>
+                                    <ul>${state.simConfig.recommendedEvents.map(item => `<li>${item}</li>`).join('') || '<li>构建环境后自动生成关键事件</li>'}</ul>
+                                </div>
+                            `}
                         </div>
                         <div class="prompt-section">
                             <label class="form-label">自定义优化提示词：</label>
@@ -755,21 +922,31 @@ JSON格式：
                             ${legendHtml ? `<div class="legend">${legendHtml}</div>` : ''}
                         </div>
                     </div>
-                    <div class="right-panel">
-                        <div class="panel-section">
-                            <div class="panel-title">📊 统计信息</div>
-                            <div class="stats-grid">
-                                <div class="stat-card"><div class="stat-value">${state.stats.entities}</div><div class="stat-label">实体</div></div>
-                                <div class="stat-card"><div class="stat-value">${state.stats.relations}</div><div class="stat-label">关系</div></div>
-                                <div class="stat-card"><div class="stat-value">${state.stats.schemas}</div><div class="stat-label">类型</div></div>
+                    <div class="right-panel ${state.ui.rightPanelCollapsed ? 'collapsed' : ''}">
+                        <div class="collapse-bar"><button class="btn-collapse" onclick="toggleRightPanel()">${state.ui.rightPanelCollapsed ? '⟨' : '⟩ 折叠右侧'}</button></div>
+                        ${state.ui.rightPanelCollapsed ? '' : `
+                            <div class="panel-section">
+                                <div class="panel-title">📊 统计信息</div>
+                                <div class="stats-grid">
+                                    <div class="stat-card"><div class="stat-value">${state.stats.entities}</div><div class="stat-label">实体</div></div>
+                                    <div class="stat-card"><div class="stat-value">${state.stats.relations}</div><div class="stat-label">关系</div></div>
+                                    <div class="stat-card"><div class="stat-value">${state.stats.schemas}</div><div class="stat-label">类型</div></div>
+                                </div>
                             </div>
+                            <div class="panel-section"><div class="panel-title">🏷️ 实体类型</div><div class="tag-container">${et}</div></div>
+                            <div class="panel-section"><div class="panel-title">🔗 关系类型</div><div class="tag-container">${rt}</div></div>
+                            <div class="log-panel">
+                                <div class="log-header"><span class="log-title">📝 系统日志</span></div>
+                                <div class="log-content" id="log-content">${state.logs.map(l => `<div class="log-entry ${l.type}"><span class="time">${l.time}</span><span class="message">${l.message}</span></div>`).join('')}</div>
+                            </div>
+                        `}
+                    </div>
+                    <div class="reasoning-panel">
+                        <div class="reasoning-header">
+                            <span class="panel-title" style="margin:0">🧠 模拟推理文字过程</span>
+                            <span style="font-size:11px;color:#789">卡片瀑布</span>
                         </div>
-                        <div class="panel-section"><div class="panel-title">🏷️ 实体类型</div><div class="tag-container">${et}</div></div>
-                        <div class="panel-section"><div class="panel-title">🔗 关系类型</div><div class="tag-container">${rt}</div></div>
-                        <div class="log-panel">
-                            <div class="log-header"><span class="log-title">📝 系统日志</span></div>
-                            <div class="log-content" id="log-content">${state.logs.map(l => `<div class="log-entry ${l.type}"><span class="time">${l.time}</span><span class="message">${l.message}</span></div>`).join('')}</div>
-                        </div>
+                        <div class="reasoning-waterfall" id="reasoning-waterfall"></div>
                     </div>
                 </div>
             `;
@@ -777,6 +954,7 @@ JSON格式：
             document.getElementById('input-text')?.addEventListener('input', e => state.inputText = e.target.value);
             document.getElementById('custom-prompt')?.addEventListener('input', e => state.customPrompt = e.target.value);
             document.getElementById('import-file')?.addEventListener('change', importGraph);
+            renderReasoningCards();
             
             if (state.graphData.nodes.length > 0 && !state.isBuilding) {
                 setTimeout(renderGraph, 100);
@@ -797,6 +975,9 @@ JSON格式：
         window.runSandboxSimulation = runSandboxSimulation;
         window.buildSimulationEnvironment = buildSimulationEnvironment;
         window.onSimConfigInput = onSimConfigInput;
+        window.toggleRightPanel = toggleRightPanel;
+        window.toggleSimulationPanel = toggleSimulationPanel;
+        window.exportSimulationPackage = exportSimulationPackage;
     </script>
     <script src="multi_agent_sim.js"></script>
 </body>
