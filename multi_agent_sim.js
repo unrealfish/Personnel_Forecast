@@ -174,6 +174,89 @@
         }
       });
     }
+
+    async proposeIntent(context = {}) {
+      const {
+        llm,
+        indexes,
+        graphSummary = '{}',
+        memoryWindow = 8,
+        round = 1,
+        env
+      } = context;
+
+      if (typeof llm !== 'function') return null;
+
+      const memory = (context.eventHistory || [])
+        .slice(-Math.max(1, memoryWindow))
+        .map((item) => {
+          const speaker = indexes?.nodeById?.get(normalizeId(item.initiator_id))?.name || item.initiator_id;
+          return `${speaker}: ${item.action?.external_behavior || ''}`;
+        })
+        .join('\n');
+
+      const people = (indexes?.nodes || [])
+        .filter((n) => n.type === '人物' && normalizeId(n.id) !== normalizeId(this.profile.id))
+        .map((n) => `${n.id}:${n.name}`)
+        .join('；');
+
+      const prompt = `你是多智能体社会推演中的角色【${this.profile.name}】。当前采用“时间片自主社交”，请你在第${round}轮判断是否主动行动。
+角色设定：${this.profile.personaText}
+人格特征：${this.profile.personality || '未提供'}；MBTI：${this.profile.mbti || '未知'}；核心需求：${this.profile.metadata?.coreNeed || '未提供'}。
+
+【全局背景摘要】\n${graphSummary}
+【近期记忆】\n${memory || '暂无'}
+【可互动对象(人物ID:姓名)】\n${people || '暂无'}
+
+请返回你的“意图”，强调目标驱动，而不是动作脚本。若本轮不行动，should_act=false。
+严格返回JSON对象，不要使用markdown代码块：
+{"should_act":true,"goal":"...","target_ids":["..."],"target_names":["..."],"chat_scope":"private|group","online_offline":"online|offline","channel_specific":"...","content":"...","internal_thought":"...","priority_hint":0,"location":"...","kg_updates":{"new_nodes":[],"new_links":[],"person_updates":[]}}`;
+
+      const parsed = safeParseJsonObject(await llm(prompt));
+      if (!parsed || parsed.should_act === false) return null;
+
+      const targetIds = new Set((parsed.target_ids || []).map((id) => normalizeId(id)));
+      (parsed.target_names || []).forEach((name) => {
+        const byName = (indexes?.nodes || []).find((n) => n.type === '人物' && n.name === name);
+        if (byName) targetIds.add(normalizeId(byName.id));
+      });
+
+      targetIds.delete(normalizeId(this.profile.id));
+
+      if (targetIds.size === 0) {
+        const fallback = [...(env?.agents?.keys?.() || [])].find((id) => normalizeId(id) !== normalizeId(this.profile.id));
+        if (fallback) targetIds.add(normalizeId(fallback));
+      }
+      if (targetIds.size === 0) return null;
+
+      const chatScope = parsed.chat_scope === ChannelMode.GROUP ? ChannelMode.GROUP : ChannelMode.PRIVATE;
+      const onlineOffline = parsed.online_offline === ChannelMode.OFFLINE ? ChannelMode.OFFLINE : ChannelMode.ONLINE;
+
+      return {
+        event: new InteractionEvent({
+          channel: {
+            onlineOffline,
+            chatScope,
+            specific: parsed.channel_specific || '自主社交意图执行'
+          },
+          initiatorId: this.profile.id,
+          receiverIds: [...targetIds],
+          location: parsed.location || this.currentLocation,
+          action: new Action({
+            internalThought: parsed.internal_thought || `${this.profile.name}正在按目标采取行动`,
+            externalBehavior: parsed.content || `${this.profile.name}主动发起交流。`
+          }),
+          payload: {
+            goal: parsed.goal || this.profile.metadata?.coreNeed || '维持关系',
+            priorityHint: Number(parsed.priority_hint) || 0,
+            kgUpdates: parsed.kg_updates,
+            generatedBy: 'agent_intent'
+          }
+        }),
+        goal: parsed.goal || '',
+        priorityHint: Number(parsed.priority_hint) || 0
+      };
+    }
   }
 
   class EventBus {
@@ -588,6 +671,26 @@
     ].join('|');
   }
 
+  function computeAgentPriority(agent, intentMeta = {}) {
+    const personalityText = `${agent.profile.personality || ''} ${agent.profile.personaText || ''}`;
+    const occupationText = `${agent.profile.metadata?.occupation || ''}`;
+    const assetText = `${agent.profile.metadata?.asset || ''}`;
+    const valuesText = `${agent.profile.metadata?.values || ''}`;
+
+    let extroversionScore = 50;
+    if (/外向|健谈|主动|社交/.test(personalityText)) extroversionScore += 25;
+    if (/内向|寡言|被动/.test(personalityText)) extroversionScore -= 20;
+
+    let statusScore = 50;
+    if (/总监|经理|负责人|创始人|主任|领导/.test(occupationText)) statusScore += 30;
+    if (/学生|实习|新人/.test(occupationText)) statusScore -= 10;
+    if (/高|充裕|丰富/.test(assetText)) statusScore += 10;
+    if (/权威|影响力|主导/.test(valuesText)) statusScore += 10;
+
+    const hint = Number(intentMeta.priorityHint) || 0;
+    return (extroversionScore * 0.45) + (statusScore * 0.45) + (hint * 0.1);
+  }
+
   async function enrichActionWithLLM(event, graphSummary, llm, indexes) {
     if (typeof llm !== 'function') return event;
     try {
@@ -625,7 +728,7 @@
     const customEvents = Array.isArray(options.customEvents) ? options.customEvents : [];
     const onRoundComplete = typeof options.onRoundComplete === 'function' ? options.onRoundComplete : null;
     const maxEventsPerRound = Math.max(1, Number(options.maxEventsPerRound) || 64);
-    const maxReactionDepth = Math.max(0, Number(options.maxReactionDepth) || 3);
+    const memoryWindow = Math.max(1, Number(options.memoryWindow) || 8);
 
     const indexes = createGraphIndexes(graphData);
     const personNodes = indexes.nodes.filter((n) => n.type === '人物');
@@ -679,56 +782,54 @@
       });
     });
 
-    const events = [];
-    if (events.length === 0) {
-      logger('[Demo] 将按轮次动态构建事件队列（含Agent自主反应）。');
-    }
+    logger('[Demo] 已启用 Agent 自主社交：每个时间片由各Agent自主生成意图，并按优先级执行。');
 
     let mutableGraph = graphData;
-    const executedSeedEventSignatures = new Set();
     logger(`[Demo] 推演任务开始：共 ${rounds} 轮，每轮最多 ${maxEventsPerRound} 个事件。`);
     for (let round = 1; round <= rounds; round += 1) {
       const currentIndexes = createGraphIndexes(mutableGraph);
       const currentPeople = currentIndexes.nodes.filter((n) => n.type === '人物');
       const graphSummary = buildGraphSummary(currentIndexes);
-
-      const baseEvents = buildSimulationEvents(mutableGraph, currentIndexes)
-        .filter((event) => {
-          const sig = getEventSignature(event);
-          return !executedSeedEventSignatures.has(sig);
-        });
       const injectedEvents = buildCustomEvents(customEvents, currentPeople)
         .filter((event) => Number(event.payload?.round || round) === round);
-      const queue = [...baseEvents, ...injectedEvents]
-        .map((event) => ({ event, depth: 0 }));
 
       logger(`[Demo] ===== 第 ${round} 轮开始 =====`);
       const roundEvents = [];
-      while (queue.length > 0 && roundEvents.length < maxEventsPerRound) {
-        const item = queue.shift();
-        const event = item.event;
-        const seedSignature = getEventSignature(event);
-        if (!event.payload?.generatedBy) {
-          executedSeedEventSignatures.add(seedSignature);
-          await enrichActionWithLLM(event, graphSummary, llm, currentIndexes);
-        }
-        const recipients = await env.emit(event);
-        roundEvents.push(event);
 
-        if (item.depth >= maxReactionDepth) continue;
-        for (const recipientId of recipients) {
-          const recipientAgent = env.agents.get(recipientId);
-          if (!recipientAgent) continue;
-          const reaction = await recipientAgent.handleEvent(event, {
-            llm,
-            indexes: currentIndexes,
-            graphSummary,
-            eventHistory: bus.eventHistory
-          });
-          if (reaction) {
-            queue.push({ event: reaction, depth: item.depth + 1 });
-          }
-        }
+      const intentCandidates = [];
+      for (const agent of env.agents.values()) {
+        const intent = await agent.proposeIntent({
+          llm,
+          indexes: currentIndexes,
+          graphSummary,
+          eventHistory: bus.eventHistory,
+          memoryWindow,
+          round,
+          env
+        });
+        if (!intent?.event) continue;
+        const priority = computeAgentPriority(agent, intent);
+        intentCandidates.push({
+          priority,
+          agentName: agent.profile.name,
+          ...intent
+        });
+      }
+
+      intentCandidates.sort((a, b) => b.priority - a.priority);
+
+      for (const item of intentCandidates) {
+        if (roundEvents.length >= maxEventsPerRound) break;
+        logger(`[Demo] 第${round}轮执行意图: ${item.agentName} | 优先级=${item.priority.toFixed(1)} | 目标=${item.goal || '未显式声明'}`);
+        await env.emit(item.event);
+        roundEvents.push(item.event);
+      }
+
+      for (const event of injectedEvents) {
+        if (roundEvents.length >= maxEventsPerRound) break;
+        await enrichActionWithLLM(event, graphSummary, llm, currentIndexes);
+        await env.emit(event);
+        roundEvents.push(event);
       }
       mutableGraph = updateGraphWithRoundFeedback(mutableGraph, round, roundEvents, currentIndexes);
       logger(`[Demo] ===== 第 ${round} 轮完成：执行 ${roundEvents.length} 个事件，累计 ${bus.eventHistory.length} 条历史 =====`);
