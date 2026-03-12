@@ -326,6 +326,53 @@
     return events;
   }
 
+  function buildCustomEvents(customEvents = [], personNodes = []) {
+    if (!Array.isArray(customEvents) || customEvents.length === 0 || personNodes.length < 2) return [];
+    const sorted = [...customEvents].sort((a, b) => (a.time || 1) - (b.time || 1));
+    return sorted.map((evt, idx) => {
+      const initiator = personNodes[idx % personNodes.length];
+      const receiver = personNodes[(idx + 1) % personNodes.length];
+      return new InteractionEvent({
+        channelType: ChannelType.PRIVATE_CHAT,
+        initiatorId: normalizeId(initiator.id),
+        receiverIds: [normalizeId(receiver.id)],
+        action: new Action({
+          internalThought: `${initiator.name}围绕用户注入事件进行判断`,
+          externalBehavior: `在第${evt.time}轮触发事件：${evt.text}`
+        }),
+        payload: { injectedEvent: evt.text, round: evt.time }
+      });
+    });
+  }
+
+  function updateGraphWithRoundFeedback(graphData, round, eventHistory = []) {
+    const nextGraph = {
+      nodes: [...(graphData.nodes || [])],
+      links: [...(graphData.links || [])]
+    };
+    const summaryName = `第${round}轮反馈`;
+    const summaryId = `round_feedback_${round}`;
+    const exists = nextGraph.nodes.some((n) => normalizeId(n.id) === summaryId);
+    if (!exists) {
+      nextGraph.nodes.push({
+        id: summaryId,
+        name: summaryName,
+        type: '关系事件',
+        description: `基于第${round}轮推演新增，累计事件数：${eventHistory.length}`
+      });
+    }
+    const personNodes = nextGraph.nodes.filter((n) => n.type === '人物');
+    personNodes.forEach((person) => {
+      const linkIdExists = nextGraph.links.some(
+        (l) => normalizeId(l.source) === normalizeId(person.id) && normalizeId(l.target) === summaryId && l.relation === '参与事件'
+      );
+      if (!linkIdExists) {
+        nextGraph.links.push({ source: person.id, target: summaryId, relation: '参与事件' });
+      }
+    });
+    return nextGraph;
+  }
+
   async function enrichActionWithLLM(event, graphSummary, llm) {
     if (typeof llm !== 'function') return event;
     try {
@@ -354,6 +401,9 @@
     const logger = options.logger || ((msg) => console.log(msg));
     const graphData = options.graphData || { nodes: [], links: [] };
     const llm = options.llm;
+    const rounds = Math.max(1, Number(options.rounds) || 1);
+    const customEvents = Array.isArray(options.customEvents) ? options.customEvents : [];
+    const onRoundComplete = typeof options.onRoundComplete === 'function' ? options.onRoundComplete : null;
 
     const indexes = createGraphIndexes(graphData);
     const personNodes = indexes.nodes.filter((n) => n.type === '人物');
@@ -407,7 +457,9 @@
       });
     });
 
-    const events = buildSimulationEvents(graphData, indexes);
+    const baseEvents = buildSimulationEvents(graphData, indexes);
+    const injectedEvents = buildCustomEvents(customEvents, personNodes);
+    const events = [...baseEvents, ...injectedEvents];
     if (events.length === 0) {
       logger('[Demo] 图谱中缺少可推演关系，未生成事件。');
       return { env, bus, events };
@@ -418,14 +470,24 @@
       relations: indexes.links.map((l) => ({ source: l.source, target: l.target, relation: l.relation }))
     });
 
-    logger(`[Demo] 开始图谱驱动推演，共 ${events.length} 个事件。`);
-    for (const event of events) {
-      await enrichActionWithLLM(event, graphSummary, llm);
-      await env.emit(event);
+    let mutableGraph = graphData;
+    logger(`[Demo] 开始图谱驱动推演，共 ${rounds} 轮，每轮 ${events.length} 个事件。`);
+    for (let round = 1; round <= rounds; round += 1) {
+      logger(`[Demo] 第 ${round} 轮开始。`);
+      for (const event of events) {
+        const allowedRound = Number(event.payload?.round || 0);
+        if (allowedRound > 0 && allowedRound !== round) continue;
+        await enrichActionWithLLM(event, graphSummary, llm);
+        await env.emit(event);
+      }
+      mutableGraph = updateGraphWithRoundFeedback(mutableGraph, round, bus.eventHistory);
+      if (onRoundComplete) {
+        await onRoundComplete({ round, graphData: mutableGraph, historySize: bus.eventHistory.length });
+      }
     }
     logger('[Demo] 图谱驱动推演完成。');
 
-    return { env, bus, events };
+    return { env, bus, events, graphData: mutableGraph };
   }
 
   global.MultiAgentSandbox = {
