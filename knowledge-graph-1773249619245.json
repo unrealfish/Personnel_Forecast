@@ -1,0 +1,677 @@
+{
+  "version": "KG-v3",
+  "exportTime": "2026-03-11T17:20:19.226Z",
+  "entities": [
+    {
+      "id": 1,
+      "name": "林薇",
+      "type": "人物",
+      "description": "女性，28岁，自由插画师/兼职艺术疗愈师，MBTI为INFP，双鱼座，硕士（美术教育），美术教育专业，成长于高知开放家庭，存款15万，父母赠予老家房产，消费观为体验付费（旅行/课程）厌恶奢侈品，金钱观愿借钱给朋友，生育意愿为做丁克一族（35岁前不确定），工作压力源为甲方反复修改需求，职业焦虑为担心AI替代插画师，休闲方式为看展/写作/独处，核心需求为情感深度＞物质保障，曾遭遇PUA经历（22岁），现回避强烈追求者"
+    },
+    {
+      "id": 2,
+      "name": "陈默",
+      "type": "人物",
+      "description": "男性，30岁，某建筑公司项目经理，MBTI为ESTJ，天蝎座，本科（土木工程），土木工程专业，成长于传统务实家庭，存款40万，贷款购房（月供7K），消费观为注重性价比定期储蓄投资，金钱观为坚持\"救急不救穷\"原则，生育意愿为想要两个孩子，工作压力源为工期紧张、跨部门协调困难，职业焦虑为晋升瓶颈期考虑考公务员，休闲方式为打篮球/研究数码产品/聚餐，核心需求为安全感＞浪漫惊喜，目睹父母争吵离婚恐惧冲突式沟通"
+    },
+    {
+      "id": 3,
+      "name": "苏晴",
+      "type": "人物",
+      "description": "林薇密友，ISTP，创业公司CEO"
+    },
+    {
+      "id": 4,
+      "name": "赵磊",
+      "type": "人物",
+      "description": "陈默密友，ESFP，健身教练"
+    },
+    {
+      "id": 5,
+      "name": "王瑶",
+      "type": "人物",
+      "description": "林薇密友，ENFJ，心理咨询师"
+    },
+    {
+      "id": 6,
+      "name": "李哲",
+      "type": "人物",
+      "description": "陈默密友，ISTJ，公务员"
+    },
+    {
+      "id": 7,
+      "name": "张加",
+      "type": "人物",
+      "description": "陈默同事"
+    },
+    {
+      "id": 8,
+      "name": "李小溪",
+      "type": "人物",
+      "description": "张加妻子，林薇在婚礼上担任其伴娘"
+    },
+    {
+      "id": 9,
+      "name": "林薇父亲",
+      "type": "人物",
+      "description": "大学教授（文学）"
+    },
+    {
+      "id": 10,
+      "name": "林薇母亲",
+      "type": "人物",
+      "description": "退休钢琴教师"
+    },
+    {
+      "id": 11,
+      "name": "陈默父亲",
+      "type": "人物",
+      "description": "国企工程师"
+    },
+    {
+      "id": 12,
+      "name": "陈默母亲",
+      "type": "人物",
+      "description": "社区医院护士"
+    },
+    {
+      "id": 13,
+      "name": "林薇表姐",
+      "type": "人物",
+      "description": "已婚律师"
+    },
+    {
+      "id": 14,
+      "name": "陈默舅舅",
+      "type": "人物",
+      "description": "家族企业高管"
+    },
+    {
+      "id": 15,
+      "name": "林薇大学男友",
+      "type": "人物",
+      "description": "ENFP，5年恋情，因异地+职业规划分歧分手"
+    },
+    {
+      "id": 16,
+      "name": "陈默前女友",
+      "type": "人物",
+      "description": "ISFJ，3年恋情，因结婚压力主动结束"
+    },
+    {
+      "id": 17,
+      "name": "INFP",
+      "type": "MBTI类型",
+      "description": "林薇的MBTI类型"
+    },
+    {
+      "id": 18,
+      "name": "ESTJ",
+      "type": "MBTI类型",
+      "description": "陈默的MBTI类型"
+    },
+    {
+      "id": 19,
+      "name": "ISTP",
+      "type": "MBTI类型",
+      "description": "苏晴的MBTI类型"
+    },
+    {
+      "id": 20,
+      "name": "ESFP",
+      "type": "MBTI类型",
+      "description": "赵磊的MBTI类型"
+    },
+    {
+      "id": 21,
+      "name": "ENFJ",
+      "type": "MBTI类型",
+      "description": "王瑶的MBTI类型"
+    },
+    {
+      "id": 22,
+      "name": "ISTJ",
+      "type": "MBTI类型",
+      "description": "李哲的MBTI类型"
+    },
+    {
+      "id": 23,
+      "name": "ENFP",
+      "type": "MBTI类型",
+      "description": "林薇大学男友的MBTI类型"
+    },
+    {
+      "id": 24,
+      "name": "ISFJ",
+      "type": "MBTI类型",
+      "description": "陈默前女友的MBTI类型"
+    },
+    {
+      "id": 25,
+      "name": "双鱼座",
+      "type": "星座",
+      "description": "林薇的星座"
+    },
+    {
+      "id": 26,
+      "name": "天蝎座",
+      "type": "星座",
+      "description": "陈默的星座"
+    },
+    {
+      "id": 27,
+      "name": "自由插画师/兼职艺术疗愈师",
+      "type": "职业",
+      "description": "林薇的职业"
+    },
+    {
+      "id": 28,
+      "name": "某建筑公司项目经理",
+      "type": "职业",
+      "description": "陈默的职业"
+    },
+    {
+      "id": 29,
+      "name": "硕士（美术教育）",
+      "type": "学历",
+      "description": "林薇的最高学历"
+    },
+    {
+      "id": 30,
+      "name": "本科（土木工程）",
+      "type": "学历",
+      "description": "陈默的最高学历"
+    },
+    {
+      "id": 31,
+      "name": "美术教育",
+      "type": "专业",
+      "description": "林薇的主修专业"
+    },
+    {
+      "id": 32,
+      "name": "土木工程",
+      "type": "专业",
+      "description": "陈默的主修专业"
+    },
+    {
+      "id": 33,
+      "name": "高知开放",
+      "type": "家庭氛围",
+      "description": "林薇的家庭氛围，重视精神交流"
+    },
+    {
+      "id": 34,
+      "name": "传统务实",
+      "type": "家庭氛围",
+      "description": "陈默的家庭氛围，强调责任与稳定"
+    },
+    {
+      "id": 35,
+      "name": "存款15万",
+      "type": "资产/财务",
+      "description": "林薇的存款"
+    },
+    {
+      "id": 36,
+      "name": "存款40万",
+      "type": "资产/财务",
+      "description": "陈默的存款"
+    },
+    {
+      "id": 37,
+      "name": "老家房产",
+      "type": "资产/财务",
+      "description": "林薇父母赠予的房产"
+    },
+    {
+      "id": 38,
+      "name": "贷款购房（月供7K）",
+      "type": "资产/财务",
+      "description": "陈默的贷款房产"
+    },
+    {
+      "id": 39,
+      "name": "为体验付费（旅行/课程），厌恶奢侈品",
+      "type": "价值观/观点",
+      "description": "林薇的消费观"
+    },
+    {
+      "id": 40,
+      "name": "注重性价比，定期储蓄投资",
+      "type": "价值观/观点",
+      "description": "陈默的消费观"
+    },
+    {
+      "id": 41,
+      "name": "希望做丁克一族（35岁前不确定）",
+      "type": "价值观/观点",
+      "description": "林薇的生育意愿"
+    },
+    {
+      "id": 42,
+      "name": "想要两个孩子",
+      "type": "价值观/观点",
+      "description": "陈默的生育意愿"
+    },
+    {
+      "id": 43,
+      "name": "愿借钱给朋友",
+      "type": "价值观/观点",
+      "description": "林薇的金钱观"
+    },
+    {
+      "id": 44,
+      "name": "坚持\"救急不救穷\"原则",
+      "type": "价值观/观点",
+      "description": "陈默的金钱观"
+    },
+    {
+      "id": 45,
+      "name": "甲方反复修改需求",
+      "type": "压力与焦虑",
+      "description": "林薇的工作压力源"
+    },
+    {
+      "id": 46,
+      "name": "工期紧张、跨部门协调困难",
+      "type": "压力与焦虑",
+      "description": "陈默的工作压力源"
+    },
+    {
+      "id": 47,
+      "name": "担心AI替代插画师",
+      "type": "压力与焦虑",
+      "description": "林薇的职业焦虑"
+    },
+    {
+      "id": 48,
+      "name": "晋升瓶颈期，考虑考公务员",
+      "type": "压力与焦虑",
+      "description": "陈默的职业焦虑"
+    },
+    {
+      "id": 49,
+      "name": "看展/写作/独处",
+      "type": "休闲方式",
+      "description": "林薇喜欢的休闲方式"
+    },
+    {
+      "id": 50,
+      "name": "打篮球/研究数码产品/聚餐",
+      "type": "休闲方式",
+      "description": "陈默喜欢的休闲方式"
+    },
+    {
+      "id": 51,
+      "name": "情感深度＞物质保障",
+      "type": "核心需求",
+      "description": "林薇的核心需求"
+    },
+    {
+      "id": 52,
+      "name": "安全感＞浪漫惊喜",
+      "type": "核心需求",
+      "description": "陈默的核心需求"
+    },
+    {
+      "id": 53,
+      "name": "云南",
+      "type": "地点",
+      "description": "共同旅行地点"
+    },
+    {
+      "id": 54,
+      "name": "共同旅行（云南10日游）",
+      "type": "关系事件",
+      "description": "情侣关键事件，暴露作息冲突"
+    },
+    {
+      "id": 55,
+      "name": "林薇忘记纪念日",
+      "type": "关系事件",
+      "description": "情侣关键事件，导致陈默首次冷战24小时"
+    },
+    {
+      "id": 56,
+      "name": "合作完成公益墙绘",
+      "type": "关系事件",
+      "description": "情侣关键事件，展现互补能力"
+    },
+    {
+      "id": 57,
+      "name": "曾被PUA经历（22岁）",
+      "type": "心理状态/创伤",
+      "description": "林薇的心理创伤"
+    },
+    {
+      "id": 58,
+      "name": "现回避强烈追求者",
+      "type": "心理状态/创伤",
+      "description": "林薇的心理状态"
+    },
+    {
+      "id": 59,
+      "name": "目睹父母争吵离婚，恐惧冲突式沟通",
+      "type": "心理状态/创伤",
+      "description": "陈默的心理创伤"
+    }
+  ],
+  "relations": [
+    {
+      "source": 1,
+      "target": 2,
+      "relation": "情侣"
+    },
+    {
+      "source": 1,
+      "target": 17,
+      "relation": "性格为"
+    },
+    {
+      "source": 2,
+      "target": 18,
+      "relation": "性格为"
+    },
+    {
+      "source": 3,
+      "target": 19,
+      "relation": "性格为"
+    },
+    {
+      "source": 4,
+      "target": 20,
+      "relation": "性格为"
+    },
+    {
+      "source": 5,
+      "target": 21,
+      "relation": "性格为"
+    },
+    {
+      "source": 6,
+      "target": 22,
+      "relation": "性格为"
+    },
+    {
+      "source": 15,
+      "target": 23,
+      "relation": "性格为"
+    },
+    {
+      "source": 16,
+      "target": 24,
+      "relation": "性格为"
+    },
+    {
+      "source": 1,
+      "target": 25,
+      "relation": "属于星座"
+    },
+    {
+      "source": 2,
+      "target": 26,
+      "relation": "属于星座"
+    },
+    {
+      "source": 1,
+      "target": 27,
+      "relation": "职业为"
+    },
+    {
+      "source": 2,
+      "target": 28,
+      "relation": "职业为"
+    },
+    {
+      "source": 1,
+      "target": 29,
+      "relation": "最高学历为"
+    },
+    {
+      "source": 2,
+      "target": 30,
+      "relation": "最高学历为"
+    },
+    {
+      "source": 1,
+      "target": 31,
+      "relation": "主修专业"
+    },
+    {
+      "source": 2,
+      "target": 32,
+      "relation": "主修专业"
+    },
+    {
+      "source": 1,
+      "target": 33,
+      "relation": "成长于"
+    },
+    {
+      "source": 2,
+      "target": 34,
+      "relation": "成长于"
+    },
+    {
+      "source": 1,
+      "target": 35,
+      "relation": "持有资产"
+    },
+    {
+      "source": 2,
+      "target": 36,
+      "relation": "持有资产"
+    },
+    {
+      "source": 1,
+      "target": 37,
+      "relation": "持有资产"
+    },
+    {
+      "source": 2,
+      "target": 38,
+      "relation": "持有资产"
+    },
+    {
+      "source": 1,
+      "target": 39,
+      "relation": "持有观点"
+    },
+    {
+      "source": 2,
+      "target": 40,
+      "relation": "持有观点"
+    },
+    {
+      "source": 1,
+      "target": 41,
+      "relation": "持有观点"
+    },
+    {
+      "source": 2,
+      "target": 42,
+      "relation": "持有观点"
+    },
+    {
+      "source": 1,
+      "target": 43,
+      "relation": "持有观点"
+    },
+    {
+      "source": 2,
+      "target": 44,
+      "relation": "持有观点"
+    },
+    {
+      "source": 1,
+      "target": 45,
+      "relation": "面临压力"
+    },
+    {
+      "source": 2,
+      "target": 46,
+      "relation": "面临压力"
+    },
+    {
+      "source": 1,
+      "target": 47,
+      "relation": "面临压力"
+    },
+    {
+      "source": 2,
+      "target": 48,
+      "relation": "面临压力"
+    },
+    {
+      "source": 1,
+      "target": 49,
+      "relation": "爱好是"
+    },
+    {
+      "source": 2,
+      "target": 50,
+      "relation": "爱好是"
+    },
+    {
+      "source": 1,
+      "target": 51,
+      "relation": "渴求"
+    },
+    {
+      "source": 2,
+      "target": 52,
+      "relation": "渴求"
+    },
+    {
+      "source": 1,
+      "target": 54,
+      "relation": "参与事件"
+    },
+    {
+      "source": 2,
+      "target": 54,
+      "relation": "参与事件"
+    },
+    {
+      "source": 1,
+      "target": 55,
+      "relation": "参与事件"
+    },
+    {
+      "source": 2,
+      "target": 55,
+      "relation": "参与事件"
+    },
+    {
+      "source": 1,
+      "target": 56,
+      "relation": "参与事件"
+    },
+    {
+      "source": 2,
+      "target": 56,
+      "relation": "参与事件"
+    },
+    {
+      "source": 54,
+      "target": 53,
+      "relation": "发生地"
+    },
+    {
+      "source": 1,
+      "target": 57,
+      "relation": "曾遭遇"
+    },
+    {
+      "source": 1,
+      "target": 58,
+      "relation": "关注/干预"
+    },
+    {
+      "source": 2,
+      "target": 59,
+      "relation": "曾遭遇"
+    },
+    {
+      "source": 3,
+      "target": 1,
+      "relation": "密友"
+    },
+    {
+      "source": 4,
+      "target": 2,
+      "relation": "密友"
+    },
+    {
+      "source": 5,
+      "target": 1,
+      "relation": "密友"
+    },
+    {
+      "source": 6,
+      "target": 2,
+      "relation": "密友"
+    },
+    {
+      "source": 1,
+      "target": 15,
+      "relation": "前任"
+    },
+    {
+      "source": 2,
+      "target": 16,
+      "relation": "前任"
+    },
+    {
+      "source": 1,
+      "target": 9,
+      "relation": "父女"
+    },
+    {
+      "source": 1,
+      "target": 10,
+      "relation": "母女"
+    },
+    {
+      "source": 2,
+      "target": 11,
+      "relation": "父子"
+    },
+    {
+      "source": 2,
+      "target": 12,
+      "relation": "母子"
+    },
+    {
+      "source": 1,
+      "target": 13,
+      "relation": "亲戚"
+    },
+    {
+      "source": 2,
+      "target": 14,
+      "relation": "亲戚"
+    },
+    {
+      "source": 7,
+      "target": 2,
+      "relation": "同事"
+    },
+    {
+      "source": 8,
+      "target": 7,
+      "relation": "夫妻"
+    },
+    {
+      "source": 8,
+      "target": 1,
+      "relation": "伴娘"
+    }
+  ],
+  "stats": {
+    "entities": 59,
+    "relations": 62,
+    "schemas": 41
+  }
+}
