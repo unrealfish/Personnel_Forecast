@@ -525,6 +525,17 @@ JSON格式：
             const detail = document.getElementById('entity-detail');
             if (detail) detail.remove();
         }
+
+        async function runSandboxSimulation() {
+            if (!window.runMultiAgentRoutingDemo) { addLog('多智能体模块未加载', 'error'); return; }
+            if (state.graphData.nodes.length === 0) { addLog('请先构建或导入知识图谱', 'info'); return; }
+            addLog('开始执行图谱驱动的多智能体推演...', 'processing');
+            await window.runMultiAgentRoutingDemo({
+                graphData: state.graphData,
+                llm: callLLM,
+                logger: (msg) => addLog(msg, 'info')
+            });
+        }
         
         function renderGraph() {
             const container = document.getElementById('graph-area');
@@ -638,6 +649,7 @@ JSON格式：
                             <div class="graph-actions">
                                 <button class="btn-icon" onclick="extractGraph()" ${state.isBuilding?'disabled':''}>🔄 刷新</button>
                                 <button class="btn-icon" onclick="toggleType()">${showType?'隐类型':'显类型'}</button>
+                                <button class="btn-icon" onclick="runSandboxSimulation()">▶ 推演</button>
                             </div>
                         </div>
                         <div class="graph-area" id="graph-area">
@@ -685,6 +697,8 @@ JSON格式：
         window.triggerImport = triggerImport;
         window.showEntityDetail = showEntityDetail;
         window.hideEntityDetail = hideEntityDetail;
+        window.runSandboxSimulation = runSandboxSimulation;
     </script>
+    <script src="multi_agent_sim.js"></script>
 </body>
 </html>
