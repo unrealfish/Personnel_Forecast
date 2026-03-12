@@ -144,12 +144,15 @@
 渠道：${event.channel.online_offline}/${event.channel.chat_scope}/${event.channel.specific}
 内容：${event.action?.external_behavior || '无'}
 
-请判断你是否需要回应。若不回应，请将reply_behavior留空。
+请判断你是否需要回应。若决定无视或保持沉默，请将reply_behavior严格填为"无"（不要留空或其他词）。
 严格返回JSON对象，不要使用markdown代码块：
 {"internal_thought":"...","reply_behavior":"...","channel_specific":"...","kg_updates":{"new_nodes":[],"new_links":[],"person_updates":[]}}`;
 
       const parsed = safeParseJsonObject(await llm(prompt));
-      if (!parsed?.reply_behavior) return null;
+      const replyText = parsed?.reply_behavior?.trim();
+      const ignoreWords = new Set(['', '无', 'null', '不回应', '沉默', '保持沉默']);
+      const normalizedReply = (replyText || '').toLowerCase();
+      if (!replyText || ignoreWords.has(normalizedReply)) return null;
 
       return new InteractionEvent({
         channel: {
@@ -162,7 +165,7 @@
         location: event.location,
         action: new Action({
           internalThought: parsed.internal_thought || `${this.profile.name}选择回应`,
-          externalBehavior: parsed.reply_behavior
+          externalBehavior: replyText
         }),
         payload: {
           ...(parsed.kg_updates ? { kgUpdates: parsed.kg_updates } : {}),
@@ -491,25 +494,26 @@
     };
     roundEvents.forEach((event, idx) => {
       if (!event) return;
-      const eventNodeId = `sim_round_${round}_event_${idx + 1}`;
-      const eventNodeName = event.payload?.eventName
-        || `第${round}轮事件${idx + 1}`;
-      const detail = `${event.action?.external_behavior || ''}；渠道=${event.channel.online_offline}/${event.channel.chat_scope}/${event.channel.specific}`;
-      upsertNode(nextGraph, {
-        id: eventNodeId,
-        name: eventNodeName,
-        type: '关系事件',
-        description: detail
-      });
-      upsertLink(nextGraph, { source: event.initiator_id, target: eventNodeId, relation: '发起事件' });
-      (event.receiver_ids || []).forEach((rid) => {
-        upsertLink(nextGraph, { source: rid, target: eventNodeId, relation: '参与事件' });
-      });
-      if (event.location && event.location !== 'unknown') {
-        const locationNode = ensureNodeByName(nextGraph, event.location, '地点', '推演触发地点');
-        upsertLink(nextGraph, { source: eventNodeId, target: locationNode.id, relation: '发生地' });
-      }
-      if (event.payload?.kgUpdates) {
+      const hasKgUpdates = Boolean(event.payload?.kgUpdates);
+      if (hasKgUpdates) {
+        const eventNodeId = `sim_round_${round}_event_${idx + 1}`;
+        const eventNodeName = event.payload?.eventName
+          || `第${round}轮事件${idx + 1}`;
+        const detail = `${event.action?.external_behavior || ''}；渠道=${event.channel.online_offline}/${event.channel.chat_scope}/${event.channel.specific}`;
+        upsertNode(nextGraph, {
+          id: eventNodeId,
+          name: eventNodeName,
+          type: '关系事件',
+          description: detail
+        });
+        upsertLink(nextGraph, { source: event.initiator_id, target: eventNodeId, relation: '发起事件' });
+        (event.receiver_ids || []).forEach((rid) => {
+          upsertLink(nextGraph, { source: rid, target: eventNodeId, relation: '参与事件' });
+        });
+        if (event.location && event.location !== 'unknown') {
+          const locationNode = ensureNodeByName(nextGraph, event.location, '地点', '推演触发地点');
+          upsertLink(nextGraph, { source: eventNodeId, target: locationNode.id, relation: '发生地' });
+        }
         applyKnowledgeGraphUpdates(nextGraph, event.payload.kgUpdates, indexes);
       }
     });
@@ -706,8 +710,8 @@
         const seedSignature = getEventSignature(event);
         if (!event.payload?.generatedBy) {
           executedSeedEventSignatures.add(seedSignature);
+          await enrichActionWithLLM(event, graphSummary, llm, currentIndexes);
         }
-        await enrichActionWithLLM(event, graphSummary, llm, currentIndexes);
         const recipients = await env.emit(event);
         roundEvents.push(event);
 
