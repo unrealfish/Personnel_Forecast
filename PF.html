@@ -105,9 +105,10 @@
         .reasoning-card.card-c { border: 1px solid #bbb; border-left: 4px solid #111; }
         .reasoning-card.card-d { border: 1px solid #bbb; border-right: 4px solid #111; }
         .reasoning-card-meta { font-size: 11px; color: #444; margin-bottom: 8px; }
-        .reasoning-card-grid { display: grid; gap: 6px; }
-        .reasoning-card-row { display: grid; grid-template-columns: 76px 1fr; gap: 6px; align-items: start; }
-        .reasoning-card-key { font-size: 11px; color: #666; }
+        .reasoning-card-grid { display: flex; flex-direction: column; }
+        .reasoning-card-row { display: grid; grid-template-columns: 76px 1fr; gap: 8px; align-items: start; padding: 8px 0; border-top: 1px solid #eee; }
+        .reasoning-card-row:first-child { border-top: none; padding-top: 0; }
+        .reasoning-card-key { font-size: 11px; color: #666; font-weight: 600; }
         .reasoning-card-value { font-size: 12px; color: #222; line-height: 1.5; white-space: pre-wrap; }
         .reasoning-card-text { font-size: 12px; color: #222; line-height: 1.5; white-space: pre-wrap; }
         .panel-section { padding: 16px; border-bottom: 1px solid var(--border-color); background: rgba(255,255,255,0.75); }
@@ -309,23 +310,32 @@
         function buildReasoningCardStructuredContent(content) {
             if (typeof content === 'string') {
                 return {
-                    agentName: '系统',
-                    direction: '系统提示',
-                    targetAgent: '全部',
-                    channel: '系统日志',
-                    internalThought: '',
-                    externalBehavior: content
+                    message: content
                 };
             }
             const payload = content || {};
             return {
-                agentName: payload.agentName || '未命名Agent',
-                direction: payload.direction || '未知',
-                targetAgent: payload.targetAgent || '无特定对象',
-                channel: payload.channel || '未指定渠道',
+                agentName: payload.agentName || '',
+                direction: payload.direction || '',
+                targetAgent: payload.targetAgent || '',
+                channel: payload.channel || '',
                 internalThought: payload.internalThought || '',
-                externalBehavior: payload.externalBehavior || '无外显行为'
+                externalBehavior: payload.externalBehavior || ''
             };
+        }
+
+        function getReasoningCardRows(structuredContent = {}) {
+            const rows = [
+                { key: 'Agent名字', value: structuredContent.agentName || '' },
+                { key: '接收/发送', value: structuredContent.direction || '' },
+                { key: '沟通对象', value: structuredContent.targetAgent || '' },
+                { key: '消息渠道', value: structuredContent.channel || '' },
+                { key: '内心独白', value: structuredContent.internalThought || '' },
+                { key: '外显行为', value: structuredContent.externalBehavior || '' }
+            ].filter(row => row.value);
+
+            if (rows.length > 0) return rows;
+            return [{ key: '内容', value: structuredContent.message || '无内容' }];
         }
 
         function pushReasoningCard(content, round = null, type = 'trace') {
@@ -361,12 +371,7 @@
                 <div class="reasoning-card ${getReasoningCardClass(card)}">
                     <div class="reasoning-card-meta">${card.time}${card.round ? ` · 第 ${card.round} 轮` : ''} · ${card.type}</div>
                     <div class="reasoning-card-grid">
-                        <div class="reasoning-card-row"><div class="reasoning-card-key">1. Agent名字</div><div class="reasoning-card-value">${escapeHtml(card.structuredContent?.agentName || '')}</div></div>
-                        <div class="reasoning-card-row"><div class="reasoning-card-key">2. 接收/发送</div><div class="reasoning-card-value">${escapeHtml(card.structuredContent?.direction || '')}</div></div>
-                        <div class="reasoning-card-row"><div class="reasoning-card-key">3. 沟通对象</div><div class="reasoning-card-value">${escapeHtml(card.structuredContent?.targetAgent || '')}</div></div>
-                        <div class="reasoning-card-row"><div class="reasoning-card-key">4. 消息渠道</div><div class="reasoning-card-value">${escapeHtml(card.structuredContent?.channel || '')}</div></div>
-                        <div class="reasoning-card-row"><div class="reasoning-card-key">5. 内心独白</div><div class="reasoning-card-value">${escapeHtml(card.structuredContent?.internalThought || '无')}</div></div>
-                        <div class="reasoning-card-row"><div class="reasoning-card-key">6. 外显行为</div><div class="reasoning-card-value">${escapeHtml(card.structuredContent?.externalBehavior || '无')}</div></div>
+                        ${getReasoningCardRows(card.structuredContent).map(row => `<div class="reasoning-card-row"><div class="reasoning-card-key">${escapeHtml(row.key)}</div><div class="reasoning-card-value">${escapeHtml(row.value)}</div></div>`).join('')}
                     </div>
                 </div>
             `).join('');
