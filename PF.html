@@ -130,6 +130,15 @@
         .tag.entity { background: #e8f5e9; color: #2e7d32; }
         .tag.relation { background: #fff3e0; color: #e65100; }
         
+
+        .agent-list { display: flex; flex-direction: column; gap: 8px; max-height: 260px; overflow-y: auto; }
+        .agent-card { border: 1px solid rgba(10,132,255,0.22); border-radius: 10px; padding: 8px; background: rgba(255,255,255,0.92); }
+        .agent-card-name { font-size: 12px; font-weight: 600; color: #1f3b66; margin-bottom: 4px; }
+        .agent-card-line { font-size: 11px; color: #555; line-height: 1.45; margin-bottom: 2px; }
+
+        .agent-card.glow-speech { border-color: rgba(48,209,88,0.9); box-shadow: 0 0 0 1px rgba(48,209,88,0.6), 0 0 18px rgba(48,209,88,0.45); }
+        .agent-card.glow-action { border-color: rgba(255,69,58,0.9); box-shadow: 0 0 0 1px rgba(255,69,58,0.6), 0 0 18px rgba(255,69,58,0.45); }
+        .agent-panel-toggle { margin-bottom: 8px; }
         .log-panel { flex: 1; background: rgba(255,255,255,0.75); display: flex; flex-direction: column; min-height: 100px; }
         .log-header { height: 36px; background: rgba(248,249,252,0.85); display: flex; align-items: center; padding: 0 16px; border-bottom: 1px solid var(--border-color); }
         .log-title { font-size: 12px; color: #666; }
@@ -175,9 +184,11 @@
             reasoningCards: [],
             roundRecords: [],
             currentSimRun: null,
+            agentActivity: {},
             ui: {
                 rightPanelCollapsed: false,
-                simulationCollapsed: false
+                simulationCollapsed: false,
+                agentPanelCollapsed: false
             }
         };
         
@@ -402,6 +413,72 @@
             };
         }
 
+
+
+        function inferAgentSignalFromEvent(evt) {
+            const behavior = `${evt?.action?.external_behavior || ''} ${evt?.action?.internal_thought || ''}`;
+            const speechPattern = /说|聊|沟通|讨论|发言|回复|消息|私聊|群聊|告知|表达/;
+            const actionPattern = /走|去|借|拿|给|转账|签|执行|行动|推进|处理|会面|拜访|协商|干预/;
+            if (actionPattern.test(behavior) && !speechPattern.test(behavior)) return 'action';
+            if (speechPattern.test(behavior)) return 'speech';
+            return 'action';
+        }
+
+        function refreshAgentActivityByRound(roundEvents = []) {
+            const nextActivity = {};
+            (roundEvents || []).forEach((evt) => {
+                const id = String(evt?.initiator_id || '');
+                if (!id) return;
+                const signal = inferAgentSignalFromEvent(evt);
+                if (signal === 'action') {
+                    nextActivity[id] = 'action';
+                    return;
+                }
+                if (!nextActivity[id]) nextActivity[id] = signal;
+            });
+            state.agentActivity = nextActivity;
+        }
+
+        function getAgentCardsData() {
+            const nodes = Array.isArray(state.graphData?.nodes) ? state.graphData.nodes : [];
+            const links = Array.isArray(state.graphData?.links) ? state.graphData.links : [];
+            const nodeById = new Map(nodes.map(n => [String(n.id), n]));
+            const people = nodes.filter(n => n.type === '人物');
+            return people.map(person => {
+                const pid = String(person.id);
+                const personLinks = links.filter(l => String(l.source) === pid);
+                const pick = rel => personLinks
+                    .filter(l => l.relation === rel)
+                    .map(l => nodeById.get(String(l.target))?.name)
+                    .filter(Boolean)
+                    .join('、');
+                return {
+                    id: person.id,
+                    name: person.name,
+                    personality: pick('性格为') || '未设置',
+                    occupation: pick('职业为') || '未设置',
+                    coreNeed: pick('渴求') || '未设置',
+                    values: pick('持有观点') || '未设置'
+                };
+            });
+        }
+
+        function renderAgentCardsHtml() {
+            const agents = getAgentCardsData();
+            if (!agents.length) {
+                return '<div class="sim-hint">构建环境后会根据图谱人物自动生成 Agent 卡片</div>';
+            }
+            return `<div class="agent-list">${agents.map(agent => `
+                <div class="agent-card ${state.agentActivity[String(agent.id)] === 'speech' ? 'glow-speech' : state.agentActivity[String(agent.id)] === 'action' ? 'glow-action' : ''}">
+                    <div class="agent-card-name">${escapeHtml(agent.name)}（ID:${escapeHtml(agent.id)}）</div>
+                    <div class="agent-card-line"><b>性格</b>：${escapeHtml(agent.personality)}</div>
+                    <div class="agent-card-line"><b>职业</b>：${escapeHtml(agent.occupation)}</div>
+                    <div class="agent-card-line"><b>核心需求</b>：${escapeHtml(agent.coreNeed)}</div>
+                    <div class="agent-card-line"><b>观点</b>：${escapeHtml(agent.values)}</div>
+                </div>
+            `).join('')}</div>`;
+        }
+
         function toggleRightPanel() {
             state.ui.rightPanelCollapsed = !state.ui.rightPanelCollapsed;
             render();
@@ -409,6 +486,11 @@
 
         function toggleSimulationPanel() {
             state.ui.simulationCollapsed = !state.ui.simulationCollapsed;
+            render();
+        }
+
+        function toggleAgentPanel() {
+            state.ui.agentPanelCollapsed = !state.ui.agentPanelCollapsed;
             render();
         }
         
@@ -746,6 +828,7 @@ JSON格式：
             };
             state.reasoningCards = [];
             state.roundRecords = [];
+            state.agentActivity = {};
 
             addLog(`开始执行图谱驱动的多智能体推演，输出目录：${folderName}`, 'processing');
             pushReasoningCard(`推演开始，目录：${folderName}`, null, 'system');
@@ -814,6 +897,7 @@ JSON格式：
                             });
                         }
                     });
+                    refreshAgentActivityByRound(roundEvents);
                     addLog(`第 ${round} 轮结束，知识图谱已更新并生成轮次文件`, 'success');
                     render();
                 }
@@ -942,7 +1026,20 @@ JSON格式：
                     .on('end', (e, d) => { if (!e.active) simulation.alphaTarget(0); d.fx = null; d.fy = null; }));
             
             node.append('circle').attr('r', showType ? 17 : 12)
-                .attr('fill', d => entityTypeColors[typeGroups[d.type] || '其他'] || '#b2dfdb').attr('stroke', '#666').attr('stroke-width', 2);
+                .attr('fill', d => entityTypeColors[typeGroups[d.type] || '其他'] || '#b2dfdb')
+                .attr('stroke', d => {
+                    const signal = state.agentActivity[String(d.id)];
+                    if (signal === 'speech') return '#30d158';
+                    if (signal === 'action') return '#ff453a';
+                    return '#666';
+                })
+                .attr('stroke-width', d => state.agentActivity[String(d.id)] ? 3 : 2)
+                .style('filter', d => {
+                    const signal = state.agentActivity[String(d.id)];
+                    if (signal === 'speech') return 'drop-shadow(0 0 8px rgba(48,209,88,0.9))';
+                    if (signal === 'action') return 'drop-shadow(0 0 8px rgba(255,69,58,0.9))';
+                    return 'none';
+                });
             
             node.append('text').text(d => d.name.length > 6 ? d.name.substring(0, 6) + '...' : d.name)
                 .attr('font-size', 10).attr('fill', '#333').attr('text-anchor', 'middle').attr('dy', 40);
@@ -1065,6 +1162,13 @@ JSON格式：
                                     <div class="stat-card"><div class="stat-value">${state.stats.schemas}</div><div class="stat-label">类型</div></div>
                                 </div>
                             </div>
+                            <div class="panel-section">
+                                <div style="display:flex;justify-content:space-between;align-items:center;" class="agent-panel-toggle">
+                                    <div class="panel-title" style="margin:0">Agent 列表（自主社交）</div>
+                                    <button class="btn-collapse" style="width:auto;padding:4px 8px" onclick="toggleAgentPanel()">${state.ui.agentPanelCollapsed ? '展开 Agent 列表 ↓' : '折叠 Agent 列表 ↑'}</button>
+                                </div>
+                                ${state.ui.agentPanelCollapsed ? '<div class="sim-hint">已折叠</div>' : renderAgentCardsHtml()}
+                            </div>
                             <div class="panel-section"><div class="panel-title">实体类型</div><div class="tag-container">${et}</div></div>
                             <div class="panel-section"><div class="panel-title">关系类型</div><div class="tag-container">${rt}</div></div>
                             <div class="log-panel">
@@ -1109,6 +1213,7 @@ JSON格式：
         window.onSimConfigInput = onSimConfigInput;
         window.toggleRightPanel = toggleRightPanel;
         window.toggleSimulationPanel = toggleSimulationPanel;
+        window.toggleAgentPanel = toggleAgentPanel;
         window.exportSimulationPackage = exportSimulationPackage;
     </script>
     <script src="multi_agent_sim.js"></script>
