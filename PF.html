@@ -205,7 +205,8 @@
                 recommendedEvents: []
             },
             expansionConfig: {
-                rounds: 1
+                rounds: 1,
+                parallelCount: 1
             },
             reasoningCards: [],
             roundRecords: [],
@@ -726,6 +727,12 @@ ${getSchemaOutputRules()}
             render();
         }
 
+        function onExpansionParallelChange(value) {
+            const parallelCount = Number(value);
+            state.expansionConfig.parallelCount = Number.isFinite(parallelCount) && parallelCount > 0 ? Math.floor(parallelCount) : 1;
+            render();
+        }
+
         function mergeExpandedGraph(currentGraph, expandedGraph) {
             const existingNodes = Array.isArray(currentGraph?.nodes) ? currentGraph.nodes : [];
             const existingLinks = Array.isArray(currentGraph?.links) ? currentGraph.links : [];
@@ -825,6 +832,7 @@ ${getSchemaOutputRules()}
             }
 
             const rounds = Math.max(1, Number(state.expansionConfig.rounds) || 1);
+            const parallelCount = Math.max(1, Number(state.expansionConfig.parallelCount) || 1);
             const people = state.graphData.nodes.filter(node => node.type === '人物');
             if (people.length === 0) {
                 addLog('图谱中暂无“人物”实体，无法执行人际网络扩充', 'warning');
@@ -847,14 +855,20 @@ ${getSchemaOutputRules()}
                         break;
                     }
 
-                    addLog(`开始第 ${i} 轮人际网络扩充（共 ${rounds} 轮），待扩充人物 ${roundPeople.length} 位`, 'processing');
+                    addLog(`开始第 ${i} 轮人际网络扩充（共 ${rounds} 轮），待扩充人物 ${roundPeople.length} 位，并行数 ${parallelCount}`, 'processing');
 
-                    for (let pIndex = 0; pIndex < roundPeople.length; pIndex += 1) {
-                        const person = roundPeople[pIndex];
-                        const neighborhood = getPersonNeighborhoodGraph(person.id);
-                        addLog(`第 ${i} 轮：正在扩充人物 ${person.name}（${pIndex + 1}/${roundPeople.length}），本次调用 1 次 LLM`, 'processing');
+                    let llmCallCount = 0;
+                    for (let batchStart = 0; batchStart < roundPeople.length; batchStart += parallelCount) {
+                        const batchPeople = roundPeople.slice(batchStart, batchStart + parallelCount);
+                        const batchNo = Math.floor(batchStart / parallelCount) + 1;
+                        addLog(`第 ${i} 轮第 ${batchNo} 批：并行扩充 ${batchPeople.length} 位人物`, 'processing');
 
-                        const prompt = `你是“人物关系脑补专家”。请在不与现有设定冲突的前提下，仅围绕指定人物扩充其人际网络与人物属性。
+                        const batchResults = await Promise.all(batchPeople.map(async (person, batchIndex) => {
+                            const globalIndex = batchStart + batchIndex;
+                            const neighborhood = getPersonNeighborhoodGraph(person.id);
+                            addLog(`第 ${i} 轮：正在扩充人物 ${person.name}（${globalIndex + 1}/${roundPeople.length}）`, 'processing');
+
+                            const prompt = `你是“人物关系脑补专家”。请在不与现有设定冲突的前提下，仅围绕指定人物扩充其人际网络与人物属性。
 
 ${getSchemaPromptBlock(false)}
 
@@ -878,32 +892,46 @@ ${JSON.stringify(neighborhood)}
   "relations": [{"source":"", "sourceType":"", "target":"", "targetType":"", "relation":""}]
 }`;
 
-                        const result = await callLLM(prompt);
-                        if (!result) {
-                            addLog(`第 ${i} 轮人物 ${person.name} 扩充失败：LLM 未返回内容`, 'warning');
-                            continue;
-                        }
+                            llmCallCount += 1;
+                            const result = await callLLM(prompt);
+                            return { person, result, round: i, index: globalIndex };
+                        }));
 
-                        const jsonStr = result.match(/\{[\s\S]*\}/)?.[0] || '{}';
-                        const parsed = JSON.parse(jsonStr);
-                        const prevNodeCount = state.graphData.nodes.length;
-                        const prevLinkCount = state.graphData.links.length;
-                        const merged = mergeExpandedGraph(state.graphData, parsed);
+                        batchResults
+                            .sort((a, b) => a.index - b.index)
+                            .forEach(({ person, result, round }) => {
+                                if (!result) {
+                                    addLog(`第 ${round} 轮人物 ${person.name} 扩充失败：LLM 未返回内容`, 'warning');
+                                    return;
+                                }
 
-                        state.graphData = merged;
-                        const expandedNode = state.graphData.nodes.find(node => String(node.id) === String(person.id));
-                        if (expandedNode) {
-                            expandedNode.expansionStatus = 'done';
-                            expandedNode.expandedByAI = true;
-                            expandedNode.expandedRound = i;
-                        }
-                        expandedPeople.add(String(person.id));
-                        updateStats(state.graphData);
+                                try {
+                                    const jsonStr = result.match(/\{[\s\S]*\}/)?.[0] || '{}';
+                                    const parsed = JSON.parse(jsonStr);
+                                    const prevNodeCount = state.graphData.nodes.length;
+                                    const prevLinkCount = state.graphData.links.length;
+                                    const merged = mergeExpandedGraph(state.graphData, parsed);
 
-                        addLog(`第 ${i} 轮人物 ${person.name} 扩充完成并已标记：新增实体 ${state.graphData.nodes.length - prevNodeCount}，新增关系 ${state.graphData.links.length - prevLinkCount}`, 'success');
+                                    state.graphData = merged;
+                                    const expandedNode = state.graphData.nodes.find(node => String(node.id) === String(person.id));
+                                    if (expandedNode) {
+                                        expandedNode.expansionStatus = 'done';
+                                        expandedNode.expandedByAI = true;
+                                        expandedNode.expandedRound = round;
+                                    }
+                                    expandedPeople.add(String(person.id));
+                                    updateStats(state.graphData);
+                                    render();
+                                    setTimeout(renderGraph, 100);
+
+                                    addLog(`第 ${round} 轮人物 ${person.name} 扩充完成并已标记：新增实体 ${state.graphData.nodes.length - prevNodeCount}，新增关系 ${state.graphData.links.length - prevLinkCount}`, 'success');
+                                } catch (e) {
+                                    addLog(`第 ${round} 轮人物 ${person.name} 扩充失败：${e.message}`, 'warning');
+                                }
+                            });
                     }
 
-                    addLog(`第 ${i} 轮人际网络扩充完成：已调用 ${roundPeople.length} 次 LLM（每人一次）`, 'success');
+                    addLog(`第 ${i} 轮人际网络扩充完成：已调用 ${llmCallCount} 次 LLM（并行数 ${parallelCount}）`, 'success');
                 }
             } catch (e) {
                 addLog('自动扩充出错: ' + e.message, 'warning');
@@ -1340,6 +1368,8 @@ ${JSON.stringify(neighborhood)}
                             <div style="margin-top:8px">
                                 <label class="form-label">人际网络自动扩充轮次：</label>
                                 <input class="sim-input" type="number" min="1" value="${state.expansionConfig.rounds}" onchange="onExpansionRoundsChange(this.value)" ${state.isBuilding?'disabled':''}>
+                                <label class="form-label" style="margin-top:8px">LLM 并行调用个数：</label>
+                                <input class="sim-input" type="number" min="1" value="${state.expansionConfig.parallelCount}" onchange="onExpansionParallelChange(this.value)" ${state.isBuilding?'disabled':''}>
                                 <button class="btn-build" style="margin-top:8px" onclick="autoExpandSocialNetwork()" ${state.isBuilding?'disabled':''}>AI扩充人际网络</button>
                             </div>
                         </div>
@@ -1449,7 +1479,7 @@ ${JSON.stringify(neighborhood)}
             renderReasoningCards();
             initPanelResizers();
             
-            if (state.graphData.nodes.length > 0 && !state.isBuilding) {
+            if (state.graphData.nodes.length > 0 && (!state.isBuilding || state.buildStep === 'expand')) {
                 setTimeout(renderGraph, 100);
             }
         }
@@ -1475,6 +1505,7 @@ ${JSON.stringify(neighborhood)}
         window.togglePeoplePanel = togglePeoplePanel;
         window.toggleReasoningPanel = toggleReasoningPanel;
         window.exportSimulationPackage = exportSimulationPackage;
+        window.onExpansionParallelChange = onExpansionParallelChange;
     </script>
     <script src="multi_agent_sim.js"></script>
 </body>
