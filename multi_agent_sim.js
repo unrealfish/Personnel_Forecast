@@ -30,8 +30,11 @@
     '成长于': 'familyAtmosphere',
     '持有资产': 'asset',
     '持有观点': 'values',
-    '渴求': 'coreNeed'
+    '渴求': 'coreNeed',
+    // 向后兼容旧的关系命名
+    '星座为': 'zodiac'
   };
+
 
   class AgentProfile {
     constructor({ id, name, personaText, personality = '', hobbies = '', mbti = '', metadata = {} }) {
