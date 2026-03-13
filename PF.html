@@ -35,7 +35,7 @@
         .logo-icon { width: 34px; height: 34px; background: linear-gradient(145deg, #6ab7ff, var(--primary-color)); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; color: #fff; box-shadow: 0 6px 14px rgba(10,132,255,0.25); }
         
         .main-container { display: flex; height: calc(100vh - 56px); }
-        .left-sidebar { width: 280px; background: var(--white-bg); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; backdrop-filter: blur(12px); }
+        .left-sidebar { width: 280px; min-width: 220px; max-width: 560px; background: var(--white-bg); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; backdrop-filter: blur(12px); flex: 0 0 auto; resize: horizontal; overflow: auto; }
         
         .input-section { padding: 16px; border-bottom: 1px solid var(--border-color); }
         .form-label { font-size: 12px; color: #666; margin-bottom: 8px; display: block; }
@@ -94,12 +94,9 @@
         .entity-detail-relations h4 { font-size: 12px; color: #666; margin-bottom: 8px; }
         .entity-detail-relation { font-size: 11px; color: #666; padding: 4px 0; }
         
-        .right-panel { width: 300px; background: rgba(250,250,252,0.86); border-left: 1px solid var(--border-color); display: flex; flex-direction: column; backdrop-filter: blur(10px); }
-        .right-panel.collapsed { width: 42px; min-width: 42px; overflow: hidden; }
-        .people-panel { width: 280px; background: rgba(250,250,252,0.86); border-left: 1px solid var(--border-color); display: flex; flex-direction: column; backdrop-filter: blur(10px); }
-        .people-panel.collapsed { width: 42px; min-width: 42px; overflow: hidden; }
-        .reasoning-panel { width: 340px; min-width: 300px; background: rgba(246,249,255,0.88); border-left: 1px solid var(--border-color); display: flex; flex-direction: column; backdrop-filter: blur(10px); }
-        .reasoning-panel.collapsed { width: 42px; min-width: 42px; overflow: hidden; }
+        .right-panel { width: 300px; min-width: 220px; max-width: 600px; background: rgba(250,250,252,0.86); border-left: 1px solid var(--border-color); display: flex; flex-direction: column; backdrop-filter: blur(10px); flex: 0 0 auto; resize: horizontal; overflow: auto; }
+        .people-panel { width: 280px; min-width: 220px; max-width: 600px; background: rgba(250,250,252,0.86); border-left: 1px solid var(--border-color); display: flex; flex-direction: column; backdrop-filter: blur(10px); flex: 0 0 auto; resize: horizontal; overflow: auto; }
+        .reasoning-panel { width: 340px; min-width: 260px; max-width: 680px; background: rgba(246,249,255,0.88); border-left: 1px solid var(--border-color); display: flex; flex-direction: column; backdrop-filter: blur(10px); flex: 0 0 auto; resize: horizontal; overflow: auto; }
         .reasoning-header { padding: 12px 14px; border-bottom: 1px solid var(--border-color); background: #fff; display:flex; align-items:center; justify-content:space-between; }
         .reasoning-waterfall { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 10px; }
         .reasoning-card { background: rgba(255,255,255,0.96); border: 1px solid #b5b5b5; border-radius: 12px; padding: 10px; box-shadow: 0 6px 14px rgba(0,0,0,0.08); }
@@ -154,6 +151,10 @@
         .log-entry.warning .message { color: #f57c00; }
         .log-entry.processing .message { color: #7b1fa2; }
         
+
+        .btn-minimized { padding: 6px 12px; border-radius: 9999px; background: rgba(255,255,255,0.96); border: 1px solid var(--border-color); cursor: pointer; font-size: 12px; color: #1d1d1f; box-shadow: 0 6px 14px rgba(15,23,42,0.12); }
+        .btn-minimized:hover { border-color: #000; color: #000; }
+
         .hidden-input { display: none; }
         
         ::-webkit-scrollbar { width: 6px; }
@@ -250,7 +251,7 @@
             '参与事件': '#4caf50', '发生地': '#4caf50', '曾遭遇': '#4caf50', '关注/干预': '#4caf50', '推荐/建议': '#4caf50'
         };
         
-        let showType = true, simulation = null;
+        let showType = true, showAttributes = true, simulation = null;
         const API_KEY = 'sk-cp-A9z1o0km6DeGKloUzgRyIbeiWR40fji97-1Fz4jGS_McfYsojJiq6K0eJ_B_W6eCDKxBNNEpzBmTW4yKr8tMxJWIFmQ7Ss8xNJm31lEFH3PcmY5H_1dqG0U';
         const API_URL = 'https://api.minimaxi.com/v1/text/chatcompletion_v2';
         
@@ -1008,12 +1009,16 @@ JSON格式：
             const g = svg.append('g');
             svg.call(d3.zoom().scaleExtent([0.1, 4]).on('zoom', e => g.attr('transform', e.transform)));
             
-            const nodes = state.graphData.nodes.map(n => ({ ...n }));
+            const nodes = state.graphData.nodes
+                .filter(n => showAttributes || n.type === '人物')
+                .map(n => ({ ...n }));
             const links = state.graphData.links.map(l => ({
                 source: nodes.find(n => n.id === l.source),
                 target: nodes.find(n => n.id === l.target),
                 relation: l.relation
             })).filter(l => l.source && l.target);
+
+            if (nodes.length === 0) return;
             
             simulation = d3.forceSimulation(nodes)
                 .force('link', d3.forceLink(links).id(d => d.id).distance(120))
@@ -1069,22 +1074,29 @@ JSON格式：
             const app = document.getElementById('app');
             const et = state.entityTypes.length ? state.entityTypes.map(t => `<span class="tag entity">${t}</span>`).join('') : '<span style="color:#666;font-size:12px">暂无</span>';
             const rt = state.relationTypes.length ? state.relationTypes.map(t => `<span class="tag relation">${t}</span>`).join('') : '<span style="color:#666;font-size:12px">暂无</span>';
+            const minimizedPanels = [
+                { key: 'rightPanelCollapsed', title: '图谱信息面板', action: 'toggleRightPanel()' },
+                { key: 'peoplePanelCollapsed', title: '人物列表面板', action: 'togglePeoplePanel()' },
+                { key: 'reasoningPanelCollapsed', title: '推演过程面板', action: 'toggleReasoningPanel()' }
+            ].filter(panel => state.ui[panel.key]);
+            const minimizedButtonsHtml = minimizedPanels.map(panel => `<button class="btn-minimized" onclick="${panel.action}">${panel.title}</button>`).join('');
             const legendHtml = state.graphData.nodes.length > 0 ? `
                 <div style="margin-bottom:12px">
                     <div style="font-size:11px;font-weight:bold;margin-bottom:6px">实体类型</div>
                     <div class="legend-item"><div class="legend-color" style="background:${entityTypeColors['人物']}"></div><span>人物</span></div>
-                    <div class="legend-item"><div class="legend-color" style="background:${entityTypeColors['人物属性']}"></div><span>人物属性</span></div>
-                    <div class="legend-item"><div class="legend-color" style="background:${entityTypeColors['资产/财务']}"></div><span>资产/财务</span></div>
-                    <div class="legend-item"><div class="legend-color" style="background:${entityTypeColors['休闲方式']}"></div><span>休闲方式</span></div>
-                    <div class="legend-item"><div class="legend-color" style="background:${entityTypeColors['内心']}"></div><span>内心</span></div>
-                    <div class="legend-item"><div class="legend-color" style="background:${entityTypeColors['关系事件']}"></div><span>关系事件</span></div>
-                    <div class="legend-item"><div class="legend-color" style="background:${entityTypeColors['地点']}"></div><span>地点</span></div>
+                    ${showAttributes ? `
+                        <div class="legend-item"><div class="legend-color" style="background:${entityTypeColors['人物属性']}"></div><span>人物属性</span></div>
+                        <div class="legend-item"><div class="legend-color" style="background:${entityTypeColors['资产/财务']}"></div><span>资产/财务</span></div>
+                        <div class="legend-item"><div class="legend-color" style="background:${entityTypeColors['休闲方式']}"></div><span>休闲方式</span></div>
+                        <div class="legend-item"><div class="legend-color" style="background:${entityTypeColors['内心']}"></div><span>内心</span></div>
+                        <div class="legend-item"><div class="legend-color" style="background:${entityTypeColors['关系事件']}"></div><span>关系事件</span></div>
+                        <div class="legend-item"><div class="legend-color" style="background:${entityTypeColors['地点']}"></div><span>地点</span></div>
+                    ` : ''}
                 </div>
                 <div>
                     <div style="font-size:11px;font-weight:bold;margin-bottom:6px">关系类型</div>
                     <div class="legend-item"><div class="legend-color" style="background:#e91e63"></div><span>社会关系</span></div>
-                    <div class="legend-item"><div class="legend-color" style="background:#2196f3"></div><span>属性映射</span></div>
-                    <div class="legend-item"><div class="legend-color" style="background:#4caf50"></div><span>事件行为</span></div>
+                    ${showAttributes ? '<div class="legend-item"><div class="legend-color" style="background:#2196f3"></div><span>属性映射</span></div><div class="legend-item"><div class="legend-color" style="background:#4caf50"></div><span>事件行为</span></div>' : ''}
                 </div>
             ` : '';
             
@@ -1153,6 +1165,8 @@ JSON格式：
                             <div class="graph-actions">
                                 <button class="btn-icon" onclick="extractGraph()" ${state.isBuilding?'disabled':''}>刷新</button>
                                 <button class="btn-icon" onclick="toggleType()">${showType?'隐藏类型':'显示类型'}</button>
+                                <button class="btn-icon" onclick="toggleAttributes()">${showAttributes?'隐藏属性':'显示属性'}</button>
+                                ${minimizedButtonsHtml}
                             </div>
                         </div>
                         <div class="graph-area" id="graph-area">
@@ -1161,9 +1175,9 @@ JSON格式：
                             ${legendHtml ? `<div class="legend">${legendHtml}</div>` : ''}
                         </div>
                     </div>
-                    <div class="right-panel ${state.ui.rightPanelCollapsed ? 'collapsed' : ''}">
-                        <div class="collapse-bar"><button class="btn-collapse" style="width:auto;padding:4px 10px" onclick="toggleRightPanel()">${state.ui.rightPanelCollapsed ? '←' : '向右折叠 →'}</button></div>
-                        ${state.ui.rightPanelCollapsed ? '' : `
+                    ${state.ui.rightPanelCollapsed ? '' : `
+                        <div class="right-panel">
+                            <div class="collapse-bar"><button class="btn-collapse" style="width:auto;padding:4px 10px" onclick="toggleRightPanel()">最小化 图谱信息面板</button></div>
                             <div class="panel-section">
                                 <div class="panel-title">图谱信息</div>
                                 <div class="stats-grid">
@@ -1178,24 +1192,26 @@ JSON格式：
                                 <div class="log-header"><span class="log-title">系统日志</span></div>
                                 <div class="log-content" id="log-content">${state.logs.map(l => `<div class="log-entry ${l.type}"><span class="time">${l.time}</span><span class="message">${l.message}</span></div>`).join('')}</div>
                             </div>
-                        `}
-                    </div>
-                    <div class="people-panel ${state.ui.peoplePanelCollapsed ? 'collapsed' : ''}">
-                        <div class="collapse-bar"><button class="btn-collapse" style="width:auto;padding:4px 10px" onclick="togglePeoplePanel()">${state.ui.peoplePanelCollapsed ? '←' : '向右折叠 →'}</button></div>
-                        ${state.ui.peoplePanelCollapsed ? '' : `
+                        </div>
+                    `}
+                    ${state.ui.peoplePanelCollapsed ? '' : `
+                        <div class="people-panel">
+                            <div class="collapse-bar"><button class="btn-collapse" style="width:auto;padding:4px 10px" onclick="togglePeoplePanel()">最小化 人物列表面板</button></div>
                             <div class="panel-section people-section">
                                 <div class="panel-title">人物列表（自主社交）</div>
                                 ${renderAgentCardsHtml()}
                             </div>
-                        `}
-                    </div>
-                    <div class="reasoning-panel ${state.ui.reasoningPanelCollapsed ? 'collapsed' : ''}">
-                        <div class="reasoning-header">
-                            <span class="panel-title" style="margin:0">推演过程</span>
-                            <button class="btn-collapse" style="width:auto;padding:4px 10px" onclick="toggleReasoningPanel()">${state.ui.reasoningPanelCollapsed ? '←' : '向右折叠 →'}</button>
                         </div>
-                        ${state.ui.reasoningPanelCollapsed ? '' : '<div class="reasoning-waterfall" id="reasoning-waterfall"></div>'}
-                    </div>
+                    `}
+                    ${state.ui.reasoningPanelCollapsed ? '' : `
+                        <div class="reasoning-panel">
+                            <div class="reasoning-header">
+                                <span class="panel-title" style="margin:0">推演过程</span>
+                                <button class="btn-collapse" style="width:auto;padding:4px 10px" onclick="toggleReasoningPanel()">最小化 推演过程面板</button>
+                            </div>
+                            <div class="reasoning-waterfall" id="reasoning-waterfall"></div>
+                        </div>
+                    `}
                 </div>
             `;
             
@@ -1210,11 +1226,13 @@ JSON格式：
         }
         
         function toggleType() { showType = !showType; render(); if (state.graphData.nodes.length > 0) setTimeout(renderGraph, 100); }
+        function toggleAttributes() { showAttributes = !showAttributes; render(); if (state.graphData.nodes.length > 0) setTimeout(renderGraph, 100); }
         
         document.addEventListener('DOMContentLoaded', () => { render(); window.addEventListener('resize', () => state.graphData.nodes.length && renderGraph()); });
         window.extractGraph = extractGraph; 
         window.loadExample = loadExample; 
         window.toggleType = toggleType; 
+        window.toggleAttributes = toggleAttributes;
         window.runOptimization = runOptimization;
         window.exportGraph = exportGraph;
         window.triggerImport = triggerImport;
