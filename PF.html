@@ -75,6 +75,7 @@
         .graph-area.bg-gray { background: linear-gradient(180deg, #f8f9fc, #eff2f7); }
         .graph-area.bg-white { background: #ffffff; }
         .graph-area.bg-grid { background-color: #ffffff; background-image: linear-gradient(rgba(60,60,67,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(60,60,67,0.08) 1px, transparent 1px); background-size: 20px 20px; }
+        .graph-area.bg-outlet { background-color: #f8fbff; background-image: radial-gradient(circle at 1px 1px, rgba(44, 99, 164, 0.26) 1.4px, transparent 1.4px), radial-gradient(circle at 11px 11px, rgba(44, 99, 164, 0.14) 1.4px, transparent 1.4px); background-size: 20px 20px; }
         .graph-loading { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #666; }
         
         .legend { position: absolute; top: 20px; right: 20px; background: rgba(255,255,255,0.9); border-radius: 12px; padding: 12px; font-size: 11px; box-shadow: var(--surface-shadow); border: 1px solid var(--border-color); }
@@ -189,6 +190,9 @@
                 recommendedRounds: 2,
                 recommendedDuration: 30,
                 recommendedEvents: []
+            },
+            expansionConfig: {
+                rounds: 1
             },
             reasoningCards: [],
             roundRecords: [],
@@ -653,6 +657,152 @@ ${getSchemaOutputRules()}
             render();
             setTimeout(renderGraph, 100);
         }
+
+        function onExpansionRoundsChange(value) {
+            const rounds = Number(value);
+            state.expansionConfig.rounds = Number.isFinite(rounds) && rounds > 0 ? Math.floor(rounds) : 1;
+            render();
+        }
+
+        function mergeExpandedGraph(currentGraph, expandedGraph) {
+            const existingNodes = Array.isArray(currentGraph?.nodes) ? currentGraph.nodes : [];
+            const existingLinks = Array.isArray(currentGraph?.links) ? currentGraph.links : [];
+            const incomingNodes = Array.isArray(expandedGraph?.entities) ? expandedGraph.entities : [];
+            const incomingLinks = Array.isArray(expandedGraph?.relations) ? expandedGraph.relations : [];
+
+            const normalizedNodes = existingNodes.map(node => ({ ...node }));
+            const nodeKeyToId = new Map();
+            normalizedNodes.forEach(node => {
+                const key = `${String(node.name || '').trim()}::${String(node.type || '').trim()}`;
+                if (key !== '::') nodeKeyToId.set(key, node.id);
+            });
+
+            let nextId = normalizedNodes.reduce((maxId, node) => Math.max(maxId, Number(node.id) || 0), 0) + 1;
+
+            incomingNodes.forEach((node) => {
+                const nodeName = String(node?.name || '').trim();
+                const nodeType = SCHEMA_ENTITY_TYPES.includes(node?.type) ? node.type : '其他';
+                if (!nodeName) return;
+                const key = `${nodeName}::${nodeType}`;
+                if (!nodeKeyToId.has(key)) {
+                    nodeKeyToId.set(key, nextId);
+                    normalizedNodes.push({
+                        id: nextId,
+                        name: nodeName,
+                        type: nodeType,
+                        description: String(node?.description || '').trim()
+                    });
+                    nextId += 1;
+                    return;
+                }
+
+                const existingId = nodeKeyToId.get(key);
+                const targetNode = normalizedNodes.find(item => item.id === existingId);
+                if (targetNode && !targetNode.description && node?.description) {
+                    targetNode.description = String(node.description).trim();
+                }
+            });
+
+            const allLinks = [...existingLinks];
+            const linkKeys = new Set(existingLinks.map(link => `${link.source}->${link.target}->${link.relation}`));
+
+            incomingLinks.forEach((link) => {
+                const relation = SCHEMA_RELATION_TYPES.includes(link?.relation) ? link.relation : null;
+                if (!relation) return;
+                const sourceType = SCHEMA_ENTITY_TYPES.includes(link?.sourceType) ? link.sourceType : null;
+                const targetType = SCHEMA_ENTITY_TYPES.includes(link?.targetType) ? link.targetType : null;
+                const sourceName = String(link?.source || '').trim();
+                const targetName = String(link?.target || '').trim();
+                if (!sourceName || !targetName) return;
+
+                const sourceId = sourceType ? nodeKeyToId.get(`${sourceName}::${sourceType}`) : normalizedNodes.find(node => node.name === sourceName)?.id;
+                const targetId = targetType ? nodeKeyToId.get(`${targetName}::${targetType}`) : normalizedNodes.find(node => node.name === targetName)?.id;
+                if (!sourceId || !targetId) return;
+
+                const key = `${sourceId}->${targetId}->${relation}`;
+                if (linkKeys.has(key)) return;
+                linkKeys.add(key);
+                allLinks.push({ source: sourceId, target: targetId, relation });
+            });
+
+            return { nodes: normalizedNodes, links: allLinks };
+        }
+
+        async function autoExpandSocialNetwork() {
+            if (state.graphData.nodes.length === 0) {
+                addLog('请先构建图谱，再进行自动扩充', 'info');
+                return;
+            }
+            if (state.isBuilding) {
+                addLog('正在处理中，请稍后再试', 'info');
+                return;
+            }
+
+            const rounds = Math.max(1, Number(state.expansionConfig.rounds) || 1);
+            const people = state.graphData.nodes.filter(node => node.type === '人物');
+            if (people.length === 0) {
+                addLog('图谱中暂无“人物”实体，无法执行人际网络扩充', 'warning');
+                return;
+            }
+
+            state.isBuilding = true;
+            state.buildStep = 'expand';
+            render();
+
+            try {
+                for (let i = 1; i <= rounds; i += 1) {
+                    addLog(`开始第 ${i} 轮人际网络扩充（共 ${rounds} 轮）`, 'processing');
+                    const prompt = `你是“人物关系脑补专家”。请在不与现有设定冲突的前提下，基于当前图谱扩充每位人物的人际网络与人物属性。
+
+${getSchemaPromptBlock(false)}
+
+${getSchemaOutputRules()}
+
+扩充规则：
+1. 每轮都需要覆盖当前图谱中的每一个“人物”实体。
+2. 对每个人物至少新增 1 个“人物”关系（可用：密友/朋友/同事/亲戚/熟人等），并新增至少 1 条属性关系（如：性格为/职业为/持有观点/渴求/爱好是等）。
+3. 可以复用已有实体，也可以新增实体；但不得删除或篡改现有人物姓名。
+4. 输出仅包含“本轮新增”内容，避免重复已存在关系。
+5. 所有 type 与 relation 必须严格来自 schema。
+
+当前人物列表：
+${JSON.stringify(people.map(p => ({ id: p.id, name: p.name, description: p.description || '' })))}
+
+当前图谱：
+${JSON.stringify({ entities: state.graphData.nodes, relations: state.graphData.links })}
+
+请仅返回 JSON：
+{
+  "entities": [{"name":"", "type":"", "description":""}],
+  "relations": [{"source":"", "sourceType":"", "target":"", "targetType":"", "relation":""}]
+}`;
+
+                    const result = await callLLM(prompt);
+                    if (!result) {
+                        addLog(`第 ${i} 轮扩充失败：LLM 未返回内容`, 'warning');
+                        continue;
+                    }
+
+                    const jsonStr = result.match(/\{[\s\S]*\}/)?.[0] || '{}';
+                    const parsed = JSON.parse(jsonStr);
+                    const merged = mergeExpandedGraph(state.graphData, parsed);
+                    const prevNodeCount = state.graphData.nodes.length;
+                    const prevLinkCount = state.graphData.links.length;
+
+                    state.graphData = merged;
+                    updateStats(state.graphData);
+
+                    addLog(`第 ${i} 轮扩充完成：新增实体 ${state.graphData.nodes.length - prevNodeCount}，新增关系 ${state.graphData.links.length - prevLinkCount}`, 'success');
+                }
+            } catch (e) {
+                addLog('自动扩充出错: ' + e.message, 'warning');
+            }
+
+            state.isBuilding = false;
+            state.buildStep = '';
+            render();
+            setTimeout(renderGraph, 100);
+        }
         
         function loadExample() {
             state.inputText = `林薇（28岁女性）的底层逻辑由其INFP人格主导。林薇希望在35岁前保持丁克状态。陈默（30J人格。陈默想要两个孩子。林薇岁男性）的EST极度依赖心理咨询师密友王瑶（ENFJ）的情感支持。创业CEO密友苏晴（ISTP）及已婚律师表姐。陈默受其国企背景的传统家庭塑造。陈默与公务员密友李哲（ISTJ）。`;
@@ -1050,7 +1200,7 @@ ${getSchemaOutputRules()}
             ` : '';
             
             const btnText = state.isBuilding 
-                ? (state.buildStep === 'review' ? '⏳ 审阅优化中...' : '⏳ 构建中...') 
+                ? (state.buildStep === 'review' ? '⏳ 审阅优化中...' : state.buildStep === 'expand' ? '⏳ 扩充中...' : '⏳ 构建中...') 
                 : '构建星演图谱';
             const roundCardsHtml = state.roundRecords.length
                 ? state.roundRecords.map(item => `
@@ -1076,6 +1226,11 @@ ${getSchemaOutputRules()}
                             <label class="form-label">自定义优化提示词：</label>
                             <textarea id="custom-prompt" class="prompt-textarea" placeholder="额外优化要求...">${state.customPrompt}</textarea>
                             <button class="btn-build btn-optimize" onclick="runOptimization()" ${state.isBuilding?'disabled':''}>重新优化</button>
+                            <div style="margin-top:8px">
+                                <label class="form-label">人际网络自动扩充轮次：</label>
+                                <input class="sim-input" type="number" min="1" value="${state.expansionConfig.rounds}" onchange="onExpansionRoundsChange(this.value)" ${state.isBuilding?'disabled':''}>
+                                <button class="btn-build" style="margin-top:8px" onclick="autoExpandSocialNetwork()" ${state.isBuilding?'disabled':''}>AI扩充人际网络</button>
+                            </div>
                         </div>
                             <div class="btn-row">
                                 <button class="btn-build btn-build-sm btn-import" onclick="triggerImport()">导入图谱</button>
@@ -1119,6 +1274,7 @@ ${getSchemaOutputRules()}
                                     <option value="gray" ${state.ui.graphBackground === 'gray' ? 'selected' : ''}>灰色背景</option>
                                     <option value="white" ${state.ui.graphBackground === 'white' ? 'selected' : ''}>白色背景</option>
                                     <option value="grid" ${state.ui.graphBackground === 'grid' ? 'selected' : ''}>网格背景</option>
+                                    <option value="outlet" ${state.ui.graphBackground === 'outlet' ? 'selected' : ''}>网点背景</option>
                                 </select>
                                 ${minimizedButtonsHtml}
                             </div>
