@@ -124,6 +124,16 @@
         .sim-round-card { border: 1px solid rgba(10,132,255,0.2); border-radius: 10px; background: rgba(255,255,255,0.92); padding: 8px; }
         .sim-round-title { font-size: 12px; font-weight: 600; color: #2e5fa8; margin-bottom: 6px; }
         .sim-round-item { font-size: 11px; color: #555; margin-bottom: 4px; }
+        .report-section { padding: 16px; border-bottom: 1px solid var(--border-color); }
+        .report-checkbox { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 12px; color: #555; }
+        .report-view { flex: 1; overflow-y: auto; padding: 20px; background: rgba(255,255,255,0.92); }
+        .report-empty { color: #666; font-size: 13px; line-height: 1.7; max-width: 760px; margin: 24px auto; background: rgba(248,249,252,0.9); border: 1px dashed var(--border-color); border-radius: 12px; padding: 16px; }
+        .report-series { max-width: 900px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+        .report-card { background: #fff; border: 1px solid var(--border-color); border-radius: 12px; box-shadow: 0 8px 20px rgba(15,23,42,0.08); overflow: hidden; }
+        .report-card-header { padding: 12px 14px; border-bottom: 1px solid #eee; }
+        .report-card-title { font-size: 15px; font-weight: 700; color: #222; }
+        .report-card-meta { margin-top: 4px; font-size: 11px; color: #666; }
+        .report-card-content { padding: 14px; font-size: 13px; line-height: 1.75; color: #2d2d2d; white-space: pre-wrap; }
         
         .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
         .stat-card { background: rgba(255,255,255,0.92); padding: 12px; border-radius: 12px; text-align: center; box-shadow: 0 6px 12px rgba(30,41,59,0.08); }
@@ -208,6 +218,14 @@
                 rounds: 1,
                 parallelCount: 1
             },
+            reportConfig: {
+                topic: '',
+                includeGodView: false,
+                mode: 'graph',
+                isGenerating: false,
+                seriesTitle: '',
+                reports: []
+            },
             reasoningCards: [],
             roundRecords: [],
             currentSimRun: null,
@@ -258,20 +276,34 @@ ${relationPart}`;
         const API_KEY = 'sk-cp-A9z1o0km6DeGKloUzgRyIbeiWR40fji97-1Fz4jGS_McfYsojJiq6K0eJ_B_W6eCDKxBNNEpzBmTW4yKr8tMxJWIFmQ7Ss8xNJm31lEFH3PcmY5H_1dqG0U';
         const API_URL = 'https://api.minimaxi.com/v1/text/chatcompletion_v2';
         
-        async function callLLM(prompt) {
+        async function callLLMWithSystem(systemPrompt, prompt, temperature = 0.3) {
             try {
                 const res = await fetch(API_URL, {
                     method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${API_KEY}` },
                     body: JSON.stringify({ model: 'MiniMax-M2.5', messages: [
-                        { role: 'system', content: '你是一个专业的知识图谱抽取助手。请从文本中提取实体和关系，返回JSON格式。' },
+                        { role: 'system', content: systemPrompt },
                         { role: 'user', content: prompt }
-                    ], temperature: 0.3 })
+                    ], temperature })
                 });
                 const data = await res.json();
                 return data.choices?.[0]?.message?.content || null;
             } catch (e) { console.error('API Error:', e); return null; }
         }
-        
+
+        async function callLLM(prompt) {
+            return callLLMWithSystem('你是一个专业的知识图谱抽取助手。请从文本中提取实体和关系，返回JSON格式。', prompt, 0.3);
+        }
+
+        function safeParseJson(text, fallback = null) {
+            if (!text) return fallback;
+            const jsonStr = text.match(/\{[\s\S]*\}/)?.[0] || text;
+            try {
+                return JSON.parse(jsonStr);
+            } catch (_err) {
+                return fallback;
+            }
+        }
+
         function addLog(msg, type = 'info') {
             state.logs = [...state.logs.slice(-30), { time: new Date().toLocaleTimeString(), message: msg, type }];
             renderLogs();
@@ -1239,6 +1271,97 @@ ${JSON.stringify(neighborhood)}
             state.simConfig[key] = value;
         }
         
+        function onReportTopicInput(value) {
+            state.reportConfig.topic = value;
+        }
+
+        function onReportGodViewToggle(checked) {
+            state.reportConfig.includeGodView = !!checked;
+        }
+
+        function formatInterviewDigest(interviews = []) {
+            return interviews.map(item => {
+                const highlights = Array.isArray(item.highlights) ? item.highlights.join('；') : '';
+                return `人物:${item.agentName || '未知'}\n公开陈述:${item.statement || '无'}\n内心想法:${item.innerThought || '无'}\n关键证据:${highlights || '无'}`;
+            }).join('\n\n');
+        }
+
+        async function generateReportSeries() {
+            if (state.isBuilding || state.reportConfig.isGenerating) { addLog('当前有任务执行中，请稍后', 'warning'); return; }
+            if (!state.graphData.nodes.length) { addLog('请先构建或导入知识图谱', 'warning'); return; }
+
+            const topic = state.reportConfig.topic.trim() || '社会情况分析';
+            const includeGodView = state.reportConfig.includeGodView;
+            state.reportConfig.isGenerating = true;
+            addLog(`开始生成报告，主题：${topic}`, 'processing');
+            pushReasoningCard({ message: `报告任务启动：${topic}` }, null, 'system');
+            render();
+
+            const graphSummary = JSON.stringify({ nodes: state.graphData.nodes, links: state.graphData.links });
+            const planningPrompt = `你是总编辑Agent。基于图谱内容，决定生成单篇报告还是系列报告。\n返回JSON：{seriesTitle, strategyReason, reports:[{title,focus,interviewTargets:[人物名]}]}\n- reports 长度可以是1到3\n- interviewTargets 只填写图谱中“人物”实体名称\n主题:${topic}\n是否允许上帝视角:${includeGodView ? '是' : '否'}\n图谱:${graphSummary}`;
+
+            const planRaw = await callLLMWithSystem('你是严谨的报告规划Agent，只输出JSON。', planningPrompt, 0.2);
+            const plan = safeParseJson(planRaw, null);
+            if (!plan || !Array.isArray(plan.reports) || !plan.reports.length) {
+                addLog('报告规划失败：未获取可用计划', 'error');
+                state.reportConfig.isGenerating = false;
+                render();
+                return;
+            }
+
+            const reportOutputs = [];
+            for (let i = 0; i < plan.reports.length; i += 1) {
+                const item = plan.reports[i];
+                const interviewPrompt = `你是采访Agent。围绕报告《${item.title}》采访相关人物，并形成采访纪要。\n只返回JSON：{interviews:[{agentName,statement,innerThought,highlights:[...] }], sceneSummary}\n采访目标:${JSON.stringify(item.interviewTargets || [])}\n允许上帝视角:${includeGodView ? '是，innerThought可包含内心' : '否，innerThought填“未开放”'}\n图谱:${graphSummary}`;
+                const interviewRaw = await callLLMWithSystem('你是善于调查的采访Agent，只输出JSON。', interviewPrompt, 0.5);
+                const interviewData = safeParseJson(interviewRaw, { interviews: [], sceneSummary: '' });
+
+                const writerPrompt = `你是撰稿Agent。根据采访资料撰写报告正文。\n要求：结构清晰，围绕主题“${topic}”，并突出本篇焦点“${item.focus || item.title}”。\n资料:\n${formatInterviewDigest(interviewData.interviews)}\n场景综述:${interviewData.sceneSummary || '无'}`;
+                const draft = await callLLMWithSystem('你是资深调查报道作者，请输出可发布中文报告。', writerPrompt, 0.6);
+
+                const reviewPrompt = `你是审稿与发布Agent。请审校并输出正式发布稿。\n输出JSON：{title,publishVersion,editorNote}\n原稿标题:${item.title}\n原稿正文:${draft || ''}`;
+                const reviewedRaw = await callLLMWithSystem('你是严格审稿Agent，只输出JSON。', reviewPrompt, 0.2);
+                const reviewed = safeParseJson(reviewedRaw, null);
+
+                reportOutputs.push({
+                    title: reviewed?.title || item.title || `报告 ${i + 1}`,
+                    content: reviewed?.publishVersion || draft || '暂无内容',
+                    editorNote: reviewed?.editorNote || '系统自动发布',
+                    interviewCount: Array.isArray(interviewData.interviews) ? interviewData.interviews.length : 0
+                });
+                pushReasoningCard({ message: `第${i + 1}篇报告完成：${item.title}` }, null, 'trace');
+            }
+
+            state.reportConfig.seriesTitle = plan.seriesTitle || `${topic}报告`;
+            state.reportConfig.reports = reportOutputs;
+            state.reportConfig.mode = 'report';
+            state.reportConfig.isGenerating = false;
+            addLog(`报告生成完成，共 ${reportOutputs.length} 篇`, 'success');
+            render();
+        }
+
+        function renderReportArea() {
+            const reportState = state.reportConfig;
+            if (!reportState.reports.length) {
+                return `<div class="report-empty">暂无报告内容。\n\n点击左侧“生成报告”后，系统会自动调用多个 Agent（规划、采访、撰写、审稿）生成一篇或多篇系列报告，并显示在此区域。</div>`;
+            }
+            return `<div class="report-series">
+                <div class="report-card">
+                    <div class="report-card-header">
+                        <div class="report-card-title">${escapeHtml(reportState.seriesTitle || '系列报告')}</div>
+                        <div class="report-card-meta">主题：${escapeHtml(reportState.topic || '未指定')} · ${reportState.includeGodView ? '含上帝视角' : '不含上帝视角'}</div>
+                    </div>
+                </div>
+                ${reportState.reports.map((report, idx) => `<article class="report-card">
+                    <div class="report-card-header">
+                        <div class="report-card-title">第 ${idx + 1} 篇：${escapeHtml(report.title)}</div>
+                        <div class="report-card-meta">采访人物数：${report.interviewCount} · 审稿说明：${escapeHtml(report.editorNote || '无')}</div>
+                    </div>
+                    <div class="report-card-content">${escapeHtml(report.content)}</div>
+                </article>`).join('')}
+            </div>`;
+        }
+
         function renderGraph() {
             const container = document.getElementById('graph-area');
             const svg = d3.select('#graph-svg');
@@ -1373,6 +1496,12 @@ ${JSON.stringify(neighborhood)}
                                 <button class="btn-build" style="margin-top:8px" onclick="autoExpandSocialNetwork()" ${state.isBuilding?'disabled':''}>AI扩充人际网络</button>
                             </div>
                         </div>
+                        <div class="report-section">
+                            <label class="form-label">报告主题：</label>
+                            <textarea class="prompt-textarea" placeholder="例如：围绕某个家庭的资产变化与关系冲突" onchange="onReportTopicInput(this.value)">${state.reportConfig.topic}</textarea>
+                            <label class="report-checkbox"><input type="checkbox" onchange="onReportGodViewToggle(this.checked)" ${state.reportConfig.includeGodView ? 'checked' : ''}>允许上帝视角（可包含人物内心）</label>
+                            <button class="btn-build" style="margin-top:8px" onclick="generateReportSeries()" ${(state.reportConfig.isGenerating || state.isBuilding)?'disabled':''}>${state.reportConfig.isGenerating ? '报告生成中...' : '生成报告'}</button>
+                        </div>
                             <div class="btn-row">
                                 <button class="btn-build btn-build-sm btn-import" onclick="triggerImport()">导入图谱</button>
                                 <button class="btn-build btn-build-sm btn-export" onclick="exportGraph()">导出图谱</button>
@@ -1410,6 +1539,8 @@ ${JSON.stringify(neighborhood)}
                             <span class="graph-title">🖥️ 星演图谱</span>
                             <div class="graph-actions">
                                 <button class="btn-icon" onclick="extractGraph()" ${state.isBuilding?'disabled':''}>刷新</button>
+                                <button class="btn-icon" onclick="state.reportConfig.mode='graph';render()">图谱视图</button>
+                                <button class="btn-icon" onclick="state.reportConfig.mode='report';render()">报告视图</button>
                                 <button class="btn-icon" onclick="toggleType()">${showType?'隐藏类型':'显示类型'}</button>
                                 ${GROUP_KEYS.map(group => `<button class="btn-icon" onclick="toggleGroupVisibility('${group}')">${groupVisibility[group] ? `隐藏${group}` : `显示${group}`}</button>`).join('')}
                                 <select class="sim-input" style="width:120px" onchange="setGraphBackground(this.value)">
@@ -1422,9 +1553,9 @@ ${JSON.stringify(neighborhood)}
                             </div>
                         </div>
                         <div class="graph-area bg-${state.ui.graphBackground}" id="graph-area">
-                            <svg id="graph-svg"></svg>
+                            ${state.reportConfig.mode === 'report' ? `<div class="report-view">${renderReportArea()}</div>` : `<svg id="graph-svg"></svg>
                             ${state.graphData.nodes.length === 0 ? '<div class="graph-loading"><div style="font-size:48px;margin-bottom:20px">🕸️</div><p>请输入文本构建星演图谱</p></div>' : ''}
-                            ${legendHtml ? `<div class="legend">${legendHtml}</div>` : ''}
+                            ${legendHtml ? `<div class="legend">${legendHtml}</div>` : ''}`}
                         </div>
                     </div>
                     ${state.ui.rightPanelCollapsed ? '' : `
@@ -1479,7 +1610,7 @@ ${JSON.stringify(neighborhood)}
             renderReasoningCards();
             initPanelResizers();
             
-            if (state.graphData.nodes.length > 0 && (!state.isBuilding || state.buildStep === 'expand')) {
+            if (state.reportConfig.mode !== 'report' && state.graphData.nodes.length > 0 && (!state.isBuilding || state.buildStep === 'expand')) {
                 setTimeout(renderGraph, 100);
             }
         }
@@ -1506,6 +1637,9 @@ ${JSON.stringify(neighborhood)}
         window.toggleReasoningPanel = toggleReasoningPanel;
         window.exportSimulationPackage = exportSimulationPackage;
         window.onExpansionParallelChange = onExpansionParallelChange;
+        window.onReportTopicInput = onReportTopicInput;
+        window.onReportGodViewToggle = onReportGodViewToggle;
+        window.generateReportSeries = generateReportSeries;
     </script>
     <script src="multi_agent_sim.js"></script>
 </body>
