@@ -65,13 +65,16 @@
         .recommend-list li { margin-left: 16px; font-size: 11px; color: #4a4a4a; line-height: 1.5; }
         
         .graph-container { flex: 1; display: flex; flex-direction: column; background: var(--light-bg); position: relative; }
-        .graph-header { height: 50px; background: var(--white-bg); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; border-bottom: 1px solid var(--border-color); }
+        .graph-header { min-height: 50px; background: var(--white-bg); display: flex; align-items: center; justify-content: space-between; padding: 6px 16px; border-bottom: 1px solid var(--border-color); }
         .graph-title { font-size: 14px; color: #666; }
-        .graph-actions { display: flex; gap: 8px; }
+        .graph-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
         .btn-icon { padding: 6px 12px; border-radius: 9999px; background: rgba(255,255,255,0.95); border: 1px solid var(--border-color); cursor: pointer; font-size: 12px; color: #1d1d1f; }
         .btn-icon:hover { border-color: #000; color: #000; }
         
         .graph-area { flex: 1; position: relative; background: linear-gradient(180deg, #f8f9fc, #eff2f7); }
+        .graph-area.bg-gray { background: linear-gradient(180deg, #f8f9fc, #eff2f7); }
+        .graph-area.bg-white { background: #ffffff; }
+        .graph-area.bg-grid { background-color: #ffffff; background-image: linear-gradient(rgba(60,60,67,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(60,60,67,0.08) 1px, transparent 1px); background-size: 20px 20px; }
         .graph-loading { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #666; }
         
         .legend { position: absolute; top: 20px; right: 20px; background: rgba(255,255,255,0.9); border-radius: 12px; padding: 12px; font-size: 11px; box-shadow: var(--surface-shadow); border: 1px solid var(--border-color); }
@@ -195,7 +198,8 @@
                 rightPanelCollapsed: false,
                 peoplePanelCollapsed: false,
                 reasoningPanelCollapsed: false,
-                simulationCollapsed: false
+                simulationCollapsed: false,
+                graphBackground: 'gray'
             }
         };
         
@@ -203,8 +207,30 @@
         const typeGroups = KG_SCHEMA.typeGroups;
         const entityTypeColors = KG_SCHEMA.entityTypeColors;
         const relationColors = KG_SCHEMA.relationColors;
-        
-        let showType = true, showAttributes = true, simulation = null;
+        const SCHEMA_ENTITY_TYPES = (KG_SCHEMA.ENTITY_TYPES || []).filter(item => item.name !== '其他').map(item => item.name);
+        const SCHEMA_RELATION_TYPES = (KG_SCHEMA.RELATION_TYPES || []).map(item => item.name);
+
+        function getSchemaPromptBlock(detail = false) {
+            const entityPart = detail
+                ? `【实体类型 - 节点类别】
+${KG_SCHEMA.entityTypeDescriptions}`
+                : `【实体类型】${SCHEMA_ENTITY_TYPES.join('、')}`;
+            const relationPart = detail
+                ? `【关系类型 - 边语义】
+${KG_SCHEMA.relationTypeDescriptions}`
+                : `【关系类型】${SCHEMA_RELATION_TYPES.join('、')}`;
+            return `${entityPart}
+
+${relationPart}`;
+        }
+
+        function getSchemaOutputRules() {
+            return `必须严格使用上述实体类型与关系类型；不得创造未定义类型。输出 JSON 必须为：{ "entities": [{id, name, type, description}], "relations": [{source, target, relation}] }。`;
+        }
+
+        let showType = true, simulation = null;
+        const GROUP_KEYS = ['人物', '人物属性', '资产/财务', '休闲方式', '内心', '关系事件', '地点', '其他'];
+        const groupVisibility = GROUP_KEYS.reduce((acc, group) => { acc[group] = true; return acc; }, {});
         const API_KEY = 'sk-cp-A9z1o0km6DeGKloUzgRyIbeiWR40fji97-1Fz4jGS_McfYsojJiq6K0eJ_B_W6eCDKxBNNEpzBmTW4yKr8tMxJWIFmQ7Ss8xNJm31lEFH3PcmY5H_1dqG0U';
         const API_URL = 'https://api.minimaxi.com/v1/text/chatcompletion_v2';
         
@@ -300,12 +326,35 @@
                 { key: '接收/发送', value: structuredContent.direction || '' },
                 { key: '沟通对象', value: structuredContent.targetAgent || '' },
                 { key: '消息渠道', value: structuredContent.channel || '' },
-                { key: '内心独白', value: structuredContent.internalThought || '' },
+                ...(groupVisibility['内心'] ? [{ key: '内心独白', value: structuredContent.internalThought || '' }] : []),
                 { key: '外显行为', value: structuredContent.externalBehavior || '' }
             ].filter(row => row.value);
 
             if (rows.length > 0) return rows;
             return [{ key: '内容', value: structuredContent.message || '无内容' }];
+        }
+
+        function getNodeGroup(node) {
+            return typeGroups[node?.type] || node?.type || '其他';
+        }
+
+        function shouldDisplayNode(node) {
+            if (!node) return false;
+            const group = getNodeGroup(node);
+            return groupVisibility[group] !== false;
+        }
+
+        function toggleGroupVisibility(group) {
+            if (!(group in groupVisibility)) return;
+            groupVisibility[group] = !groupVisibility[group];
+            render();
+            if (state.graphData.nodes.length > 0) setTimeout(renderGraph, 100);
+        }
+
+        function setGraphBackground(mode) {
+            state.ui.graphBackground = mode;
+            render();
+            if (state.graphData.nodes.length > 0) setTimeout(renderGraph, 100);
         }
 
         function pushReasoningCard(content, round = null, type = 'trace') {
@@ -430,10 +479,10 @@
             return `<div class="agent-list">${agents.map(agent => `
                 <div class="agent-card ${state.agentActivity[String(agent.id)] === 'speech' ? 'glow-speech' : state.agentActivity[String(agent.id)] === 'action' ? 'glow-action' : ''}">
                     <div class="agent-card-name">${escapeHtml(agent.name)}（ID:${escapeHtml(agent.id)}）</div>
-                    <div class="agent-card-line"><b>性格</b>：${escapeHtml(agent.personality)}</div>
-                    <div class="agent-card-line"><b>职业</b>：${escapeHtml(agent.occupation)}</div>
-                    <div class="agent-card-line"><b>核心需求</b>：${escapeHtml(agent.coreNeed)}</div>
-                    <div class="agent-card-line"><b>观点</b>：${escapeHtml(agent.values)}</div>
+                    ${(groupVisibility['人物属性'] || groupVisibility['资产/财务'] || groupVisibility['休闲方式']) ? `<div class="agent-card-line"><b>性格</b>：${escapeHtml(agent.personality)}</div>
+                    <div class="agent-card-line"><b>职业</b>：${escapeHtml(agent.occupation)}</div>` : ''}
+                    ${groupVisibility['内心'] ? `<div class="agent-card-line"><b>核心需求</b>：${escapeHtml(agent.coreNeed)}</div>
+                    <div class="agent-card-line"><b>观点</b>：${escapeHtml(agent.values)}</div>` : ''}
                 </div>
             `).join('')}</div>`;
         }
@@ -464,23 +513,15 @@
             render();
             addLog('开始构建知识图谱...', 'info');
             
-            const prompt = `从以下文本提取知识图谱实体和关系。请严格按照以下类型分类，仅仅返回JSON格式：
+            const prompt = `从以下文本提取知识图谱实体和关系，请严格遵循 schema，并仅返回 JSON。
 
-【实体类型 - 节点类别】
-${KG_SCHEMA.entityTypeDescriptions}
+${getSchemaPromptBlock(true)}
 
-【关系类型 - 边语义】
-${KG_SCHEMA.relationTypeDescriptions}
-
-JSON格式：
-{
-  "entities": [{id, name, type, description: "实体描述信息"}],
-  "relations": [{source, target, relation}]
-}
+${getSchemaOutputRules()}
 
 文本:
 
- ${state.inputText}`;
+${state.inputText}`;
             
             try {
                 const result = await callLLM(prompt);
@@ -491,7 +532,7 @@ JSON格式：
                 const entities = (parsed.entities || []).map((e, i) => ({ 
                     id: i + 1, 
                     name: e.name, 
-                    type: e.type,
+                    type: SCHEMA_ENTITY_TYPES.includes(e.type) ? e.type : '其他',
                     description: e.description || ''
                 }));
                 
@@ -500,8 +541,8 @@ JSON格式：
                 const relations = (parsed.relations || []).map(r => ({
                     source: idMap[r.source] || idMap[String(r.source)],
                     target: idMap[r.target] || idMap[String(r.target)],
-                    relation: r.relation
-                })).filter(r => r.source && r.target);
+                    relation: SCHEMA_RELATION_TYPES.includes(r.relation) ? r.relation : null
+                })).filter(r => r.source && r.target && r.relation);
                 
                 state.entityTypes = [...new Set(entities.map(e => e.type))];
                 state.relationTypes = [...new Set(relations.map(r => r.relation).filter(Boolean))];
@@ -533,9 +574,9 @@ JSON格式：
             
             const defaultPrompt = `你是一个知识图谱审阅优化助手。请对已提取的知识图谱进行审阅和优化。
 
-【实体类型】${KG_SCHEMA.entityTypesText}
+${getSchemaPromptBlock(false)}
 
-【关系类型】${KG_SCHEMA.relationTypesText}
+${getSchemaOutputRules()}
 
 当前图谱数据：
 - 实体: ${JSON.stringify(entities.map(e => ({id: e.id, name: e.name, type: e.type, description: e.description})))}
@@ -548,8 +589,7 @@ JSON格式：
 3. 补全信息：完善实体的description描述
 4. 保持现有描述信息不被丢失
 
-特别注意：仅仅返回json信息，不要有其他内容。
-另外，请注意：`;
+特别注意：仅返回 JSON，不要有其他内容。`;
 
             const reviewPrompt = customPrompt 
                 ? `${defaultPrompt}\n\n${customPrompt}`
@@ -567,7 +607,7 @@ JSON格式：
                     state.graphData.nodes = parsed.entities.map((e, i) => ({ 
                         id: i + 1, 
                         name: e.name, 
-                        type: e.type,
+                        type: SCHEMA_ENTITY_TYPES.includes(e.type) ? e.type : '其他',
                         description: e.description || ''
                     }));
                     
@@ -577,8 +617,8 @@ JSON格式：
                     state.graphData.links = (parsed.relations || []).map(r => ({
                         source: idMap[r.source] || r.source,
                         target: idMap[r.target] || r.target,
-                        relation: r.relation
-                    })).filter(r => r.source && r.target);
+                        relation: SCHEMA_RELATION_TYPES.includes(r.relation) ? r.relation : null
+                    })).filter(r => r.source && r.target && r.relation);
                     
                     state.entityTypes = [...new Set(state.graphData.nodes.map(e => e.type))];
                     state.relationTypes = [...new Set(state.graphData.links.map(r => r.relation).filter(Boolean))];
@@ -926,7 +966,7 @@ JSON格式：
             svg.call(d3.zoom().scaleExtent([0.1, 4]).on('zoom', e => g.attr('transform', e.transform)));
             
             const nodes = state.graphData.nodes
-                .filter(n => showAttributes || n.type === '人物')
+                .filter(shouldDisplayNode)
                 .map(n => ({ ...n }));
             const links = state.graphData.links.map(l => ({
                 source: nodes.find(n => n.id === l.source),
@@ -999,20 +1039,13 @@ JSON格式：
             const legendHtml = state.graphData.nodes.length > 0 ? `
                 <div style="margin-bottom:12px">
                     <div style="font-size:11px;font-weight:bold;margin-bottom:6px">实体类型</div>
-                    <div class="legend-item"><div class="legend-color" style="background:${entityTypeColors['人物']}"></div><span>人物</span></div>
-                    ${showAttributes ? `
-                        <div class="legend-item"><div class="legend-color" style="background:${entityTypeColors['人物属性']}"></div><span>人物属性</span></div>
-                        <div class="legend-item"><div class="legend-color" style="background:${entityTypeColors['资产/财务']}"></div><span>资产/财务</span></div>
-                        <div class="legend-item"><div class="legend-color" style="background:${entityTypeColors['休闲方式']}"></div><span>休闲方式</span></div>
-                        <div class="legend-item"><div class="legend-color" style="background:${entityTypeColors['内心']}"></div><span>内心</span></div>
-                        <div class="legend-item"><div class="legend-color" style="background:${entityTypeColors['关系事件']}"></div><span>关系事件</span></div>
-                        <div class="legend-item"><div class="legend-color" style="background:${entityTypeColors['地点']}"></div><span>地点</span></div>
-                    ` : ''}
+                    ${GROUP_KEYS.map(group => `<div class="legend-item" style="opacity:${groupVisibility[group] ? '1' : '0.4'}"><div class="legend-color" style="background:${entityTypeColors[group] || entityTypeColors['其他']}"></div><span>${group}</span></div>`).join('')}
                 </div>
                 <div>
                     <div style="font-size:11px;font-weight:bold;margin-bottom:6px">关系类型</div>
                     <div class="legend-item"><div class="legend-color" style="background:#e91e63"></div><span>社会关系</span></div>
-                    ${showAttributes ? '<div class="legend-item"><div class="legend-color" style="background:#2196f3"></div><span>属性映射</span></div><div class="legend-item"><div class="legend-color" style="background:#4caf50"></div><span>事件行为</span></div>' : ''}
+                    <div class="legend-item"><div class="legend-color" style="background:#2196f3"></div><span>属性映射</span></div>
+                    <div class="legend-item"><div class="legend-color" style="background:#4caf50"></div><span>事件行为</span></div>
                 </div>
             ` : '';
             
@@ -1081,11 +1114,16 @@ JSON格式：
                             <div class="graph-actions">
                                 <button class="btn-icon" onclick="extractGraph()" ${state.isBuilding?'disabled':''}>刷新</button>
                                 <button class="btn-icon" onclick="toggleType()">${showType?'隐藏类型':'显示类型'}</button>
-                                <button class="btn-icon" onclick="toggleAttributes()">${showAttributes?'隐藏属性':'显示属性'}</button>
+                                ${GROUP_KEYS.map(group => `<button class="btn-icon" onclick="toggleGroupVisibility('${group}')">${groupVisibility[group] ? `隐藏${group}` : `显示${group}`}</button>`).join('')}
+                                <select class="sim-input" style="width:120px" onchange="setGraphBackground(this.value)">
+                                    <option value="gray" ${state.ui.graphBackground === 'gray' ? 'selected' : ''}>灰色背景</option>
+                                    <option value="white" ${state.ui.graphBackground === 'white' ? 'selected' : ''}>白色背景</option>
+                                    <option value="grid" ${state.ui.graphBackground === 'grid' ? 'selected' : ''}>网格背景</option>
+                                </select>
                                 ${minimizedButtonsHtml}
                             </div>
                         </div>
-                        <div class="graph-area" id="graph-area">
+                        <div class="graph-area bg-${state.ui.graphBackground}" id="graph-area">
                             <svg id="graph-svg"></svg>
                             ${state.graphData.nodes.length === 0 ? '<div class="graph-loading"><div style="font-size:48px;margin-bottom:20px">🕸️</div><p>请输入文本构建星演图谱</p></div>' : ''}
                             ${legendHtml ? `<div class="legend">${legendHtml}</div>` : ''}
@@ -1115,6 +1153,9 @@ JSON格式：
                             <div class="collapse-bar"><button class="btn-collapse" style="width:auto;padding:4px 10px" onclick="togglePeoplePanel()">最小化 人物列表面板</button></div>
                             <div class="panel-section people-section">
                                 <div class="panel-title">人物列表（自主社交）</div>
+                                <div class="btn-row agent-panel-toggle" style="flex-wrap:wrap">
+                                    ${GROUP_KEYS.map(group => `<button class="btn-icon" style="flex:1 1 48%" onclick="toggleGroupVisibility('${group}')">${groupVisibility[group] ? `隐藏${group}` : `显示${group}`}</button>`).join('')}
+                                </div>
                                 ${renderAgentCardsHtml()}
                             </div>
                         </div>
@@ -1142,13 +1183,13 @@ JSON格式：
         }
         
         function toggleType() { showType = !showType; render(); if (state.graphData.nodes.length > 0) setTimeout(renderGraph, 100); }
-        function toggleAttributes() { showAttributes = !showAttributes; render(); if (state.graphData.nodes.length > 0) setTimeout(renderGraph, 100); }
         
         document.addEventListener('DOMContentLoaded', () => { render(); window.addEventListener('resize', () => state.graphData.nodes.length && renderGraph()); });
         window.extractGraph = extractGraph; 
         window.loadExample = loadExample; 
         window.toggleType = toggleType; 
-        window.toggleAttributes = toggleAttributes;
+        window.toggleGroupVisibility = toggleGroupVisibility;
+        window.setGraphBackground = setGraphBackground;
         window.runOptimization = runOptimization;
         window.exportGraph = exportGraph;
         window.triggerImport = triggerImport;
