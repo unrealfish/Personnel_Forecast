@@ -134,7 +134,8 @@
         .tag.relation { background: #fff3e0; color: #e65100; }
         
 
-        .agent-list { display: flex; flex-direction: column; gap: 8px; max-height: 260px; overflow-y: auto; }
+        .people-section { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+        .agent-list { display: flex; flex-direction: column; gap: 8px; flex: 1; min-height: 0; overflow-y: auto; }
         .agent-card { border: 1px solid rgba(10,132,255,0.22); border-radius: 10px; padding: 8px; background: rgba(255,255,255,0.92); }
         .agent-card-name { font-size: 12px; font-weight: 600; color: #1f3b66; margin-bottom: 4px; }
         .agent-card-line { font-size: 11px; color: #555; line-height: 1.45; margin-bottom: 2px; }
@@ -1182,7 +1183,7 @@ JSON格式：
                     <div class="people-panel ${state.ui.peoplePanelCollapsed ? 'collapsed' : ''}">
                         <div class="collapse-bar"><button class="btn-collapse" style="width:auto;padding:4px 10px" onclick="togglePeoplePanel()">${state.ui.peoplePanelCollapsed ? '←' : '向右折叠 →'}</button></div>
                         ${state.ui.peoplePanelCollapsed ? '' : `
-                            <div class="panel-section">
+                            <div class="panel-section people-section">
                                 <div class="panel-title">人物列表（自主社交）</div>
                                 ${renderAgentCardsHtml()}
                             </div>
