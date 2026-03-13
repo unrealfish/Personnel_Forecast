@@ -71,7 +71,7 @@
         .btn-icon { padding: 6px 12px; border-radius: 9999px; background: rgba(255,255,255,0.95); border: 1px solid var(--border-color); cursor: pointer; font-size: 12px; color: #1d1d1f; }
         .btn-icon:hover { border-color: #000; color: #000; }
         
-        .graph-area { flex: 1; position: relative; background: linear-gradient(180deg, #f8f9fc, #eff2f7); }
+        .graph-area { flex: 1; position: relative; background: linear-gradient(180deg, #f8f9fc, #eff2f7); min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
         .graph-area.bg-gray { background: linear-gradient(180deg, #f8f9fc, #eff2f7); }
         .graph-area.bg-white { background: #ffffff; }
         .graph-area.bg-grid { background-color: #ffffff; background-image: linear-gradient(rgba(60,60,67,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(60,60,67,0.08) 1px, transparent 1px); background-size: 20px 20px; }
@@ -126,14 +126,25 @@
         .sim-round-item { font-size: 11px; color: #555; margin-bottom: 4px; }
         .report-section { padding: 16px; border-bottom: 1px solid var(--border-color); }
         .report-checkbox { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 12px; color: #555; }
-        .report-view { flex: 1; overflow-y: auto; padding: 20px; background: rgba(255,255,255,0.92); }
+        .report-view { flex: 1; min-height: 0; overflow-y: auto; padding: 20px; background: rgba(255,255,255,0.92); }
         .report-empty { color: #666; font-size: 13px; line-height: 1.7; max-width: 760px; margin: 24px auto; background: rgba(248,249,252,0.9); border: 1px dashed var(--border-color); border-radius: 12px; padding: 16px; }
         .report-series { max-width: 900px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
         .report-card { background: #fff; border: 1px solid var(--border-color); border-radius: 12px; box-shadow: 0 8px 20px rgba(15,23,42,0.08); overflow: hidden; }
         .report-card-header { padding: 12px 14px; border-bottom: 1px solid #eee; }
         .report-card-title { font-size: 15px; font-weight: 700; color: #222; }
         .report-card-meta { margin-top: 4px; font-size: 11px; color: #666; }
-        .report-card-content { padding: 14px; font-size: 13px; line-height: 1.75; color: #2d2d2d; white-space: pre-wrap; }
+        .report-card-content { padding: 14px; font-size: 13px; line-height: 1.75; color: #2d2d2d; }
+        .report-card-content h1, .report-card-content h2, .report-card-content h3, .report-card-content h4 { margin: 10px 0 6px; line-height: 1.4; }
+        .report-card-content p { margin: 0 0 10px; }
+        .report-card-content ul, .report-card-content ol { margin: 0 0 10px 20px; }
+        .report-card-content li { margin-bottom: 4px; }
+        .report-card-content blockquote { margin: 0 0 10px; padding: 8px 12px; border-left: 3px solid #d0d7de; background: #f6f8fa; color: #444; }
+        .report-card-content pre { margin: 0 0 10px; padding: 10px; border-radius: 8px; background: #f6f8fa; overflow-x: auto; }
+        .report-card-content code { font-family: SFMono-Regular, Menlo, monospace; background: rgba(175,184,193,0.2); padding: 1px 4px; border-radius: 4px; }
+        .report-card-content pre code { background: transparent; padding: 0; }
+
+        .view-switch { display: flex; gap: 8px; }
+        .view-switch .btn-icon.active { background: #2d333b; color: #fff; border-color: #2d333b; }
         
         .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
         .stat-card { background: rgba(255,255,255,0.92); padding: 12px; border-radius: 12px; text-align: center; box-shadow: 0 6px 12px rgba(30,41,59,0.08); }
@@ -220,6 +231,7 @@
             },
             reportConfig: {
                 topic: '',
+                style: '',
                 includeGodView: false,
                 mode: 'graph',
                 isGenerating: false,
@@ -344,6 +356,7 @@ ${relationPart}`;
             };
         }
 
+
         function escapeHtml(text) {
             return String(text ?? '')
                 .replace(/&/g, '&amp;')
@@ -351,6 +364,119 @@ ${relationPart}`;
                 .replace(/>/g, '&gt;')
                 .replace(/"/g, '&quot;')
                 .replace(/'/g, '&#39;');
+        }
+
+        function parseInlineMarkdown(text) {
+            let html = escapeHtml(text || '');
+            html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+            html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+            html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+            html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+            return html;
+        }
+
+        function markdownToHtml(markdown = '') {
+            const lines = String(markdown || '').replace(/\r/g, '').split('\n');
+            const html = [];
+            let inUl = false;
+            let inOl = false;
+            let inCode = false;
+
+            const closeLists = () => {
+                if (inUl) { html.push('</ul>'); inUl = false; }
+                if (inOl) { html.push('</ol>'); inOl = false; }
+            };
+
+            lines.forEach(line => {
+                if (line.trim().startsWith('```')) {
+                    closeLists();
+                    if (!inCode) {
+                        inCode = true;
+                        html.push('<pre><code>');
+                    } else {
+                        inCode = false;
+                        html.push('</code></pre>');
+                    }
+                    return;
+                }
+
+                if (inCode) {
+                    html.push(`${escapeHtml(line)}\n`);
+                    return;
+                }
+
+                if (!line.trim()) {
+                    closeLists();
+                    return;
+                }
+
+                const heading = line.match(/^(#{1,4})\s+(.*)$/);
+                if (heading) {
+                    closeLists();
+                    const level = heading[1].length;
+                    html.push(`<h${level}>${parseInlineMarkdown(heading[2])}</h${level}>`);
+                    return;
+                }
+
+                const blockquote = line.match(/^>\s?(.*)$/);
+                if (blockquote) {
+                    closeLists();
+                    html.push(`<blockquote>${parseInlineMarkdown(blockquote[1])}</blockquote>`);
+                    return;
+                }
+
+                const ul = line.match(/^[-*]\s+(.*)$/);
+                if (ul) {
+                    if (inOl) { html.push('</ol>'); inOl = false; }
+                    if (!inUl) { html.push('<ul>'); inUl = true; }
+                    html.push(`<li>${parseInlineMarkdown(ul[1])}</li>`);
+                    return;
+                }
+
+                const ol = line.match(/^\d+\.\s+(.*)$/);
+                if (ol) {
+                    if (inUl) { html.push('</ul>'); inUl = false; }
+                    if (!inOl) { html.push('<ol>'); inOl = true; }
+                    html.push(`<li>${parseInlineMarkdown(ol[1])}</li>`);
+                    return;
+                }
+
+                closeLists();
+                html.push(`<p>${parseInlineMarkdown(line)}</p>`);
+            });
+
+            closeLists();
+            if (inCode) html.push('</code></pre>');
+            return html.join('');
+        }
+
+        function buildReportMarkdown() {
+            const reportState = state.reportConfig;
+            if (!reportState.reports.length) return '';
+            const header = `# ${reportState.seriesTitle || '系列报告'}\n\n主题：${reportState.topic || '未指定'}\n风格：${reportState.style || '默认'}\n视角：${reportState.includeGodView ? '含上帝视角' : '不含上帝视角'}\n`;
+            const body = reportState.reports.map((report, idx) => (
+                `\n## 第 ${idx + 1} 篇：${report.title || `报告 ${idx + 1}`}\n\n- 采访人物数：${report.interviewCount ?? 0}\n- 审稿说明：${report.editorNote || '无'}\n\n${report.content || ''}\n`
+            )).join('\n');
+            return `${header}${body}`;
+        }
+
+        function downloadReportMarkdown() {
+            const content = buildReportMarkdown();
+            if (!content) {
+                addLog('暂无报告可下载，请先生成报告', 'warning');
+                return;
+            }
+            const topic = (state.reportConfig.topic || 'report').replace(/[\/:*?"<>|\s]+/g, '_');
+            const fileName = `${topic}_星演报告.md`;
+            const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(link.href);
+            addLog(`报告已下载：${fileName}`, 'success');
         }
 
         function getAgentNameById(agentId) {
@@ -1275,6 +1401,10 @@ ${JSON.stringify(neighborhood)}
             state.reportConfig.topic = value;
         }
 
+        function onReportStyleInput(value) {
+            state.reportConfig.style = value;
+        }
+
         function onReportGodViewToggle(checked) {
             state.reportConfig.includeGodView = !!checked;
         }
@@ -1291,65 +1421,147 @@ ${JSON.stringify(neighborhood)}
             if (!state.graphData.nodes.length) { addLog('请先构建或导入知识图谱', 'warning'); return; }
 
             const topic = state.reportConfig.topic.trim() || '社会情况分析';
+            const style = state.reportConfig.style.trim() || '客观、结构化、纪实风格';
             const includeGodView = state.reportConfig.includeGodView;
             state.reportConfig.isGenerating = true;
-            addLog(`开始生成报告，主题：${topic}`, 'processing');
-            pushReasoningCard({ message: `报告任务启动：${topic}` }, null, 'system');
+            addLog(`开始生成报告，主题：${topic}，风格：${style}`, 'processing');
+            pushReasoningCard({ message: `报告任务启动：${topic}（${style}）` }, null, 'system');
             render();
 
-            const graphSummary = JSON.stringify({ nodes: state.graphData.nodes, links: state.graphData.links });
-            const planningPrompt = `你是总编辑Agent。基于图谱内容，决定生成单篇报告还是系列报告。\n返回JSON：{seriesTitle, strategyReason, reports:[{title,focus,interviewTargets:[人物名]}]}\n- reports 长度可以是1到3\n- interviewTargets 只填写图谱中“人物”实体名称\n主题:${topic}\n是否允许上帝视角:${includeGodView ? '是' : '否'}\n图谱:${graphSummary}`;
+            try {
+                const graphSummary = JSON.stringify({ nodes: state.graphData.nodes, links: state.graphData.links });
 
-            const planRaw = await callLLMWithSystem('你是严谨的报告规划Agent，只输出JSON。', planningPrompt, 0.2);
-            const plan = safeParseJson(planRaw, null);
-            if (!plan || !Array.isArray(plan.reports) || !plan.reports.length) {
-                addLog('报告规划失败：未获取可用计划', 'error');
-                state.reportConfig.isGenerating = false;
-                render();
-                return;
-            }
+                // Step 1: 采访者先采访，形成公共素材池
+                const interviewPrompt = `你是采访Agent。请先完成采访，再交付可复用素材池。
+只返回JSON：{materials:[{agentName,statement,innerThought,highlights:[...],evidence:[...]}], sceneSummary, keyClues:[...]}
+采访范围：图谱中的人物实体
+主题:${topic}
+写作风格需求:${style}
+允许上帝视角:${includeGodView ? '是，innerThought可包含内心' : '否，innerThought填“未开放”'}
+图谱:${graphSummary}`;
+                const interviewRaw = await callLLMWithSystem('你是调查记者采访Agent，只输出JSON。', interviewPrompt, 0.4);
+                const interviewData = safeParseJson(interviewRaw, { materials: [], sceneSummary: '', keyClues: [] });
+                const materials = Array.isArray(interviewData.materials) ? interviewData.materials : [];
+                if (!materials.length) {
+                    addLog('采访阶段未获取到可用素材，报告生成终止', 'error');
+                    state.reportConfig.isGenerating = false;
+                    render();
+                    return;
+                }
+                pushReasoningCard({ message: `采访完成，素材条数：${materials.length}` }, null, 'trace');
 
-            const reportOutputs = [];
-            for (let i = 0; i < plan.reports.length; i += 1) {
-                const item = plan.reports[i];
-                const interviewPrompt = `你是采访Agent。围绕报告《${item.title}》采访相关人物，并形成采访纪要。\n只返回JSON：{interviews:[{agentName,statement,innerThought,highlights:[...] }], sceneSummary}\n采访目标:${JSON.stringify(item.interviewTargets || [])}\n允许上帝视角:${includeGodView ? '是，innerThought可包含内心' : '否，innerThought填“未开放”'}\n图谱:${graphSummary}`;
-                const interviewRaw = await callLLMWithSystem('你是善于调查的采访Agent，只输出JSON。', interviewPrompt, 0.5);
-                const interviewData = safeParseJson(interviewRaw, { interviews: [], sceneSummary: '' });
+                // Step 2: 主编基于主题+风格+素材，规划系列稿件要求
+                const editorialPrompt = `你是主编Agent。请根据用户主题、文章风格与采访素材，决定产出稿件数量，并给每篇稿件制定细致要求。
+只返回JSON：{seriesTitle, strategyReason, reports:[{title,focus,angle,outline:[...],mustInclude:[...]}]}
+要求：
+- reports长度1到3
+- 每篇focus和angle必须不同
+- mustInclude应引用素材中的关键信息点
+主题:${topic}
+文章风格:${style}
+采访场景综述:${interviewData.sceneSummary || '无'}
+关键线索:${JSON.stringify(interviewData.keyClues || [])}
+采访素材:${JSON.stringify(materials)}`;
+                const planRaw = await callLLMWithSystem('你是严格的主编Agent，只输出JSON。', editorialPrompt, 0.3);
+                const plan = safeParseJson(planRaw, null);
+                if (!plan || !Array.isArray(plan.reports) || !plan.reports.length) {
+                    addLog('主编规划失败：未获取可用稿件计划', 'error');
+                    state.reportConfig.isGenerating = false;
+                    render();
+                    return;
+                }
+                pushReasoningCard({ message: `主编完成选题，计划稿件数：${plan.reports.length}` }, null, 'trace');
 
-                const writerPrompt = `你是撰稿Agent。根据采访资料撰写报告正文。\n要求：结构清晰，围绕主题“${topic}”，并突出本篇焦点“${item.focus || item.title}”。\n资料:\n${formatInterviewDigest(interviewData.interviews)}\n场景综述:${interviewData.sceneSummary || '无'}`;
-                const draft = await callLLMWithSystem('你是资深调查报道作者，请输出可发布中文报告。', writerPrompt, 0.6);
+                // Step 3: 撰稿人循环出稿（共用采访素材池）
+                const draftOutputs = [];
+                const materialDigest = formatInterviewDigest(materials.map(m => ({
+                    agentName: m.agentName,
+                    statement: m.statement,
+                    innerThought: m.innerThought,
+                    highlights: [...(m.highlights || []), ...(m.evidence || [])]
+                })));
 
-                const reviewPrompt = `你是审稿与发布Agent。请审校并输出正式发布稿。\n输出JSON：{title,publishVersion,editorNote}\n原稿标题:${item.title}\n原稿正文:${draft || ''}`;
-                const reviewedRaw = await callLLMWithSystem('你是严格审稿Agent，只输出JSON。', reviewPrompt, 0.2);
+                for (let i = 0; i < plan.reports.length; i += 1) {
+                    const item = plan.reports[i] || {};
+                    const writerPrompt = `你是撰稿Agent。请按主编要求输出第${i + 1}篇稿件。
+要求：
+- 仅输出正文（Markdown格式）
+- 风格必须严格符合：${style}
+- 紧扣总主题：${topic}
+- 本篇标题：${item.title || `稿件 ${i + 1}`}
+- 本篇焦点：${item.focus || ''}
+- 本篇角度：${item.angle || ''}
+- 建议结构：${JSON.stringify(item.outline || [])}
+- 必须覆盖信息点：${JSON.stringify(item.mustInclude || [])}
+可用采访素材：
+${materialDigest}
+场景综述:${interviewData.sceneSummary || '无'}`;
+                    const draft = await callLLMWithSystem('你是资深撰稿人，请输出中文Markdown稿件正文。', writerPrompt, 0.6);
+                    draftOutputs.push({
+                        title: item.title || `报告 ${i + 1}`,
+                        focus: item.focus || '',
+                        content: draft || '暂无内容',
+                        interviewCount: materials.length
+                    });
+                    pushReasoningCard({ message: `第${i + 1}篇初稿完成：${item.title || `报告 ${i + 1}`}` }, null, 'trace');
+                }
+
+                // Step 4: 审稿人统一审阅所有稿件并修复问题
+                const reviewPrompt = `你是审稿与发布Agent。请统一审阅以下全部稿件并修复问题后发布。
+只返回JSON：{seriesTitle, editorSummary, reports:[{title,publishVersion,editorNote}]}
+要求：
+- reports数量与输入稿件一致
+- publishVersion为最终发布稿（Markdown）
+- 修复事实冲突、逻辑重复、风格不一致问题
+总主题:${topic}
+统一风格:${style}
+初稿列表:${JSON.stringify(draftOutputs)}`;
+                const reviewedRaw = await callLLMWithSystem('你是严格审稿Agent，只输出JSON。', reviewPrompt, 0.3);
                 const reviewed = safeParseJson(reviewedRaw, null);
 
-                reportOutputs.push({
-                    title: reviewed?.title || item.title || `报告 ${i + 1}`,
-                    content: reviewed?.publishVersion || draft || '暂无内容',
-                    editorNote: reviewed?.editorNote || '系统自动发布',
-                    interviewCount: Array.isArray(interviewData.interviews) ? interviewData.interviews.length : 0
-                });
-                pushReasoningCard({ message: `第${i + 1}篇报告完成：${item.title}` }, null, 'trace');
-            }
+                let finalReports = draftOutputs.map((draft, idx) => ({
+                    title: draft.title,
+                    content: draft.content,
+                    editorNote: '审稿回退：沿用初稿',
+                    interviewCount: draft.interviewCount
+                }));
 
-            state.reportConfig.seriesTitle = plan.seriesTitle || `${topic}报告`;
-            state.reportConfig.reports = reportOutputs;
-            state.reportConfig.mode = 'report';
-            state.reportConfig.isGenerating = false;
-            addLog(`报告生成完成，共 ${reportOutputs.length} 篇`, 'success');
-            render();
+                if (reviewed && Array.isArray(reviewed.reports) && reviewed.reports.length) {
+                    finalReports = draftOutputs.map((draft, idx) => {
+                        const rev = reviewed.reports[idx] || {};
+                        return {
+                            title: rev.title || draft.title,
+                            content: rev.publishVersion || draft.content,
+                            editorNote: rev.editorNote || reviewed.editorSummary || '系统自动发布',
+                            interviewCount: draft.interviewCount
+                        };
+                    });
+                }
+
+                state.reportConfig.seriesTitle = plan.seriesTitle || reviewed?.seriesTitle || `${topic}报告`;
+                state.reportConfig.reports = finalReports;
+                state.reportConfig.mode = 'report';
+                state.reportConfig.isGenerating = false;
+                addLog(`报告生成完成，共 ${finalReports.length} 篇（采访→主编→撰稿→审稿）`, 'success');
+                render();
+            } catch (error) {
+                console.error(error);
+                addLog(`报告生成失败：${error?.message || '未知错误'}`, 'error');
+                state.reportConfig.isGenerating = false;
+                render();
+            }
         }
 
         function renderReportArea() {
             const reportState = state.reportConfig;
             if (!reportState.reports.length) {
-                return `<div class="report-empty">暂无报告内容。\n\n点击左侧“生成报告”后，系统会自动调用多个 Agent（规划、采访、撰写、审稿）生成一篇或多篇系列报告，并显示在此区域。</div>`;
+                return `<div class="report-empty">暂无报告内容。\n\n点击左侧“生成报告”后，系统会自动调用多个 Agent（采访、主编规划、撰写、审稿）生成一篇或多篇系列报告，并显示在此区域。</div>`;
             }
             return `<div class="report-series">
                 <div class="report-card">
                     <div class="report-card-header">
                         <div class="report-card-title">${escapeHtml(reportState.seriesTitle || '系列报告')}</div>
-                        <div class="report-card-meta">主题：${escapeHtml(reportState.topic || '未指定')} · ${reportState.includeGodView ? '含上帝视角' : '不含上帝视角'}</div>
+                        <div class="report-card-meta">主题：${escapeHtml(reportState.topic || '未指定')} · 风格：${escapeHtml(reportState.style || '默认')} · ${reportState.includeGodView ? '含上帝视角' : '不含上帝视角'}</div>
                     </div>
                 </div>
                 ${reportState.reports.map((report, idx) => `<article class="report-card">
@@ -1357,7 +1569,7 @@ ${JSON.stringify(neighborhood)}
                         <div class="report-card-title">第 ${idx + 1} 篇：${escapeHtml(report.title)}</div>
                         <div class="report-card-meta">采访人物数：${report.interviewCount} · 审稿说明：${escapeHtml(report.editorNote || '无')}</div>
                     </div>
-                    <div class="report-card-content">${escapeHtml(report.content)}</div>
+                    <div class="report-card-content">${markdownToHtml(report.content)}</div>
                 </article>`).join('')}
             </div>`;
         }
@@ -1499,6 +1711,7 @@ ${JSON.stringify(neighborhood)}
                         <div class="report-section">
                             <label class="form-label">报告主题：</label>
                             <textarea class="prompt-textarea" placeholder="例如：围绕某个家庭的资产变化与关系冲突" onchange="onReportTopicInput(this.value)">${state.reportConfig.topic}</textarea>
+                            <textarea class="prompt-textarea" style="margin-top:8px" placeholder="文章风格，例如：深度调查、数据分析、纪实叙事" onchange="onReportStyleInput(this.value)">${state.reportConfig.style || ''}</textarea>
                             <label class="report-checkbox"><input type="checkbox" onchange="onReportGodViewToggle(this.checked)" ${state.reportConfig.includeGodView ? 'checked' : ''}>允许上帝视角（可包含人物内心）</label>
                             <button class="btn-build" style="margin-top:8px" onclick="generateReportSeries()" ${(state.reportConfig.isGenerating || state.isBuilding)?'disabled':''}>${state.reportConfig.isGenerating ? '报告生成中...' : '生成报告'}</button>
                         </div>
@@ -1536,11 +1749,13 @@ ${JSON.stringify(neighborhood)}
                     <div class="panel-resizer" data-target="leftSidebar" data-side="right" data-min="220" data-max="560"></div>
                     <div class="graph-container">
                         <div class="graph-header">
-                            <span class="graph-title">🖥️ 星演图谱</span>
+                            <div class="view-switch">
+                                <button class="btn-icon ${state.reportConfig.mode === 'graph' ? 'active' : ''}" onclick="state.reportConfig.mode='graph';render()">星演图谱</button>
+                                <button class="btn-icon ${state.reportConfig.mode === 'report' ? 'active' : ''}" onclick="state.reportConfig.mode='report';render()">星演报告</button>
+                            </div>
                             <div class="graph-actions">
                                 <button class="btn-icon" onclick="extractGraph()" ${state.isBuilding?'disabled':''}>刷新</button>
-                                <button class="btn-icon" onclick="state.reportConfig.mode='graph';render()">图谱视图</button>
-                                <button class="btn-icon" onclick="state.reportConfig.mode='report';render()">报告视图</button>
+                                <button class="btn-icon" onclick="downloadReportMarkdown()" ${!state.reportConfig.reports.length?'disabled':''}>下载报告(.md)</button>
                                 <button class="btn-icon" onclick="toggleType()">${showType?'隐藏类型':'显示类型'}</button>
                                 ${GROUP_KEYS.map(group => `<button class="btn-icon" onclick="toggleGroupVisibility('${group}')">${groupVisibility[group] ? `隐藏${group}` : `显示${group}`}</button>`).join('')}
                                 <select class="sim-input" style="width:120px" onchange="setGraphBackground(this.value)">
@@ -1638,8 +1853,10 @@ ${JSON.stringify(neighborhood)}
         window.exportSimulationPackage = exportSimulationPackage;
         window.onExpansionParallelChange = onExpansionParallelChange;
         window.onReportTopicInput = onReportTopicInput;
+        window.onReportStyleInput = onReportStyleInput;
         window.onReportGodViewToggle = onReportGodViewToggle;
         window.generateReportSeries = generateReportSeries;
+        window.downloadReportMarkdown = downloadReportMarkdown;
     </script>
     <script src="multi_agent_sim.js"></script>
 </body>
