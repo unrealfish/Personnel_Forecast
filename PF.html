@@ -75,7 +75,7 @@
         .graph-area.bg-gray { background: linear-gradient(180deg, #f8f9fc, #eff2f7); }
         .graph-area.bg-white { background: #ffffff; }
         .graph-area.bg-grid { background-color: #ffffff; background-image: linear-gradient(rgba(60,60,67,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(60,60,67,0.08) 1px, transparent 1px); background-size: 20px 20px; }
-        .graph-area.bg-outlet { background-color: #f8fbff; background-image: radial-gradient(circle at 1px 1px, rgba(44, 99, 164, 0.26) 1.4px, transparent 1.4px), radial-gradient(circle at 11px 11px, rgba(44, 99, 164, 0.14) 1.4px, transparent 1.4px); background-size: 20px 20px; }
+        .graph-area.bg-outlet { background-color: #f8fbff; background-image: radial-gradient(circle at 2px 2px, rgba(44, 99, 164, 0.24) 1.5px, transparent 1.5px); background-size: 20px 20px; }
         .graph-loading { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #666; }
         
         .legend { position: absolute; top: 20px; right: 20px; background: rgba(255,255,255,0.9); border-radius: 12px; padding: 12px; font-size: 11px; box-shadow: var(--surface-shadow); border: 1px solid var(--border-color); }
@@ -118,7 +118,8 @@
         .panel-section { padding: 16px; border-bottom: 1px solid var(--border-color); background: rgba(255,255,255,0.75); }
         .panel-title { font-size: 13px; font-weight: 600; color: #666; margin-bottom: 12px; }
         .collapse-bar { padding: 8px; border-bottom: 1px solid var(--border-color); background: #fff; display: flex; justify-content: flex-end; }
-        .btn-collapse { width: 100%; padding: 6px; border: 1px solid var(--border-color); border-radius: 9999px; background: rgba(255,255,255,0.9); cursor: pointer; font-size: 12px; }
+        .btn-collapse { width: 100%; padding: 6px; border: 1px solid #727880; border-radius: 9999px; background: #8a9098; cursor: pointer; font-size: 12px; color: #fff; }
+        .btn-collapse:hover { background: #757b84; }
         .sim-round-list { margin-top: 8px; display: flex; flex-direction: column; gap: 8px; max-height: 260px; overflow-y: auto; }
         .sim-round-card { border: 1px solid rgba(10,132,255,0.2); border-radius: 10px; background: rgba(255,255,255,0.92); padding: 8px; }
         .sim-round-title { font-size: 12px; font-weight: 600; color: #2e5fa8; margin-bottom: 6px; }
@@ -156,8 +157,20 @@
         .log-entry.processing .message { color: #7b1fa2; }
         
 
-        .btn-minimized { padding: 6px 12px; border-radius: 9999px; background: rgba(255,255,255,0.96); border: 1px solid var(--border-color); cursor: pointer; font-size: 12px; color: #1d1d1f; box-shadow: 0 6px 14px rgba(15,23,42,0.12); }
-        .btn-minimized:hover { border-color: #000; color: #000; }
+        .btn-minimized { padding: 6px 12px; border-radius: 9999px; background: #8a9098; border: 1px solid #727880; cursor: pointer; font-size: 12px; color: #fff; box-shadow: 0 6px 14px rgba(15,23,42,0.12); }
+        .btn-minimized:hover { background: #757b84; border-color: #666c74; color: #fff; }
+
+        
+        .panel-resizer {
+            width: 8px;
+            cursor: col-resize;
+            background: rgba(120, 128, 138, 0.14);
+            border-left: 1px solid rgba(114, 120, 128, 0.28);
+            border-right: 1px solid rgba(114, 120, 128, 0.28);
+            transition: background .15s ease;
+            flex: 0 0 8px;
+        }
+        .panel-resizer:hover, .panel-resizer.dragging { background: rgba(120, 128, 138, 0.32); }
 
         .hidden-input { display: none; }
         
@@ -203,7 +216,13 @@
                 peoplePanelCollapsed: false,
                 reasoningPanelCollapsed: false,
                 simulationCollapsed: false,
-                graphBackground: 'gray'
+                graphBackground: 'gray',
+                panelWidths: {
+                    leftSidebar: 280,
+                    rightPanel: 300,
+                    peoplePanel: 280,
+                    reasoningPanel: 340
+                }
             }
         };
         
@@ -511,6 +530,49 @@ ${relationPart}`;
             render();
         }
 
+
+        function initPanelResizers() {
+            document.querySelectorAll('.panel-resizer').forEach((resizer) => {
+                resizer.onmousedown = (downEvent) => {
+                    downEvent.preventDefault();
+                    const targetKey = resizer.dataset.target;
+                    const side = resizer.dataset.side || 'right';
+                    const min = Number(resizer.dataset.min) || 180;
+                    const max = Number(resizer.dataset.max) || 900;
+                    const panelMap = {
+                        leftSidebar: '.left-sidebar',
+                        rightPanel: '.right-panel',
+                        peoplePanel: '.people-panel',
+                        reasoningPanel: '.reasoning-panel'
+                    };
+                    const panel = document.querySelector(panelMap[targetKey]);
+                    if (!panel) return;
+
+                    const startX = downEvent.clientX;
+                    const startWidth = panel.getBoundingClientRect().width;
+                    resizer.classList.add('dragging');
+
+                    const onMove = (moveEvent) => {
+                        const deltaX = moveEvent.clientX - startX;
+                        const width = side === 'left' ? startWidth - deltaX : startWidth + deltaX;
+                        const nextWidth = Math.max(min, Math.min(max, width));
+                        panel.style.width = `${nextWidth}px`;
+                        if (!state.ui.panelWidths) state.ui.panelWidths = {};
+                        state.ui.panelWidths[targetKey] = Math.round(nextWidth);
+                    };
+
+                    const onUp = () => {
+                        resizer.classList.remove('dragging');
+                        document.removeEventListener('mousemove', onMove);
+                        document.removeEventListener('mouseup', onUp);
+                    };
+
+                    document.addEventListener('mousemove', onMove);
+                    document.addEventListener('mouseup', onUp);
+                };
+            });
+        }
+
         async function extractGraph() {
             if (!state.inputText.trim()) { addLog('请输入文本内容', 'info'); return; }
             state.isBuilding = true; state.buildStep = 'extract';
@@ -728,6 +790,30 @@ ${getSchemaOutputRules()}
             return { nodes: normalizedNodes, links: allLinks };
         }
 
+        function getPersonNeighborhoodGraph(personId) {
+            const allNodes = Array.isArray(state.graphData?.nodes) ? state.graphData.nodes : [];
+            const allLinks = Array.isArray(state.graphData?.links) ? state.graphData.links : [];
+            const targetId = String(personId);
+
+            const adjacentNodeIds = new Set([targetId]);
+            const adjacentLinks = allLinks.filter((link) => {
+                const sourceId = String(link?.source ?? '');
+                const targetNodeId = String(link?.target ?? '');
+                const isAdjacent = sourceId === targetId || targetNodeId === targetId;
+                if (isAdjacent) {
+                    adjacentNodeIds.add(sourceId);
+                    adjacentNodeIds.add(targetNodeId);
+                }
+                return isAdjacent;
+            });
+
+            const adjacentNodes = allNodes.filter(node => adjacentNodeIds.has(String(node?.id ?? '')));
+            return {
+                entities: adjacentNodes,
+                relations: adjacentLinks
+            };
+        }
+
         async function autoExpandSocialNetwork() {
             if (state.graphData.nodes.length === 0) {
                 addLog('请先构建图谱，再进行自动扩充', 'info');
@@ -745,31 +831,46 @@ ${getSchemaOutputRules()}
                 return;
             }
 
+            const expandedPeople = new Set();
             state.isBuilding = true;
             state.buildStep = 'expand';
             render();
 
             try {
                 for (let i = 1; i <= rounds; i += 1) {
-                    addLog(`开始第 ${i} 轮人际网络扩充（共 ${rounds} 轮）`, 'processing');
-                    const prompt = `你是“人物关系脑补专家”。请在不与现有设定冲突的前提下，基于当前图谱扩充每位人物的人际网络与人物属性。
+                    const roundPeople = state.graphData.nodes
+                        .filter(node => node.type === '人物')
+                        .filter(node => !expandedPeople.has(String(node.id)));
+
+                    if (roundPeople.length === 0) {
+                        addLog(`第 ${i} 轮无需扩充：全部人物均已扩充完成`, 'info');
+                        break;
+                    }
+
+                    addLog(`开始第 ${i} 轮人际网络扩充（共 ${rounds} 轮），待扩充人物 ${roundPeople.length} 位`, 'processing');
+
+                    for (let pIndex = 0; pIndex < roundPeople.length; pIndex += 1) {
+                        const person = roundPeople[pIndex];
+                        const neighborhood = getPersonNeighborhoodGraph(person.id);
+                        addLog(`第 ${i} 轮：正在扩充人物 ${person.name}（${pIndex + 1}/${roundPeople.length}），本次调用 1 次 LLM`, 'processing');
+
+                        const prompt = `你是“人物关系脑补专家”。请在不与现有设定冲突的前提下，仅围绕指定人物扩充其人际网络与人物属性。
 
 ${getSchemaPromptBlock(false)}
 
 ${getSchemaOutputRules()}
 
 扩充规则：
-1. 每轮都需要覆盖当前图谱中的每一个“人物”实体。
-2. 对每个人物至少新增 1 个“人物”关系（可用：密友/朋友/同事/亲戚/熟人等），并新增至少 1 条属性关系（如：性格为/职业为/持有观点/渴求/爱好是等）。
-3. 可以复用已有实体，也可以新增实体；但不得删除或篡改现有人物姓名。
-4. 输出仅包含“本轮新增”内容，避免重复已存在关系。
-5. 所有 type 与 relation 必须严格来自 schema。
+1. 本次只扩充 1 位人物，必须是：${JSON.stringify({ id: person.id, name: person.name, description: person.description || '' })}。
+2. 你只能依据“目标人物及其相邻节点”信息进行补全，不要依赖全图上下文。
+3. 必须至少新增 1 条该人物与“人物”之间的关系（可用：密友/朋友/同事/亲戚/熟人等）。
+4. 必须至少新增 1 条该人物的属性关系（如：性格为/职业为/持有观点/渴求/爱好是等）。
+5. 可以复用已有实体，也可以新增实体；但不得删除或篡改现有人物姓名。
+6. 输出仅包含“本次新增”内容，避免重复已存在关系。
+7. 所有 type 与 relation 必须严格来自 schema。
 
-当前人物列表：
-${JSON.stringify(people.map(p => ({ id: p.id, name: p.name, description: p.description || '' })))}
-
-当前图谱：
-${JSON.stringify({ entities: state.graphData.nodes, relations: state.graphData.links })}
+目标人物及其相邻节点子图：
+${JSON.stringify(neighborhood)}
 
 请仅返回 JSON：
 {
@@ -777,22 +878,32 @@ ${JSON.stringify({ entities: state.graphData.nodes, relations: state.graphData.l
   "relations": [{"source":"", "sourceType":"", "target":"", "targetType":"", "relation":""}]
 }`;
 
-                    const result = await callLLM(prompt);
-                    if (!result) {
-                        addLog(`第 ${i} 轮扩充失败：LLM 未返回内容`, 'warning');
-                        continue;
+                        const result = await callLLM(prompt);
+                        if (!result) {
+                            addLog(`第 ${i} 轮人物 ${person.name} 扩充失败：LLM 未返回内容`, 'warning');
+                            continue;
+                        }
+
+                        const jsonStr = result.match(/\{[\s\S]*\}/)?.[0] || '{}';
+                        const parsed = JSON.parse(jsonStr);
+                        const prevNodeCount = state.graphData.nodes.length;
+                        const prevLinkCount = state.graphData.links.length;
+                        const merged = mergeExpandedGraph(state.graphData, parsed);
+
+                        state.graphData = merged;
+                        const expandedNode = state.graphData.nodes.find(node => String(node.id) === String(person.id));
+                        if (expandedNode) {
+                            expandedNode.expansionStatus = 'done';
+                            expandedNode.expandedByAI = true;
+                            expandedNode.expandedRound = i;
+                        }
+                        expandedPeople.add(String(person.id));
+                        updateStats(state.graphData);
+
+                        addLog(`第 ${i} 轮人物 ${person.name} 扩充完成并已标记：新增实体 ${state.graphData.nodes.length - prevNodeCount}，新增关系 ${state.graphData.links.length - prevLinkCount}`, 'success');
                     }
 
-                    const jsonStr = result.match(/\{[\s\S]*\}/)?.[0] || '{}';
-                    const parsed = JSON.parse(jsonStr);
-                    const merged = mergeExpandedGraph(state.graphData, parsed);
-                    const prevNodeCount = state.graphData.nodes.length;
-                    const prevLinkCount = state.graphData.links.length;
-
-                    state.graphData = merged;
-                    updateStats(state.graphData);
-
-                    addLog(`第 ${i} 轮扩充完成：新增实体 ${state.graphData.nodes.length - prevNodeCount}，新增关系 ${state.graphData.links.length - prevLinkCount}`, 'success');
+                    addLog(`第 ${i} 轮人际网络扩充完成：已调用 ${roundPeople.length} 次 LLM（每人一次）`, 'success');
                 }
             } catch (e) {
                 addLog('自动扩充出错: ' + e.message, 'warning');
@@ -803,7 +914,7 @@ ${JSON.stringify({ entities: state.graphData.nodes, relations: state.graphData.l
             render();
             setTimeout(renderGraph, 100);
         }
-        
+
         function loadExample() {
             state.inputText = `林薇（28岁女性）的底层逻辑由其INFP人格主导。林薇希望在35岁前保持丁克状态。陈默（30J人格。陈默想要两个孩子。林薇岁男性）的EST极度依赖心理咨询师密友王瑶（ENFJ）的情感支持。创业CEO密友苏晴（ISTP）及已婚律师表姐。陈默受其国企背景的传统家庭塑造。陈默与公务员密友李哲（ISTJ）。`;
             addLog('已加载示例', 'info');
@@ -1217,7 +1328,7 @@ ${JSON.stringify({ entities: state.graphData.nodes, relations: state.graphData.l
             app.innerHTML = `
                 <nav class="top-navbar"><div class="nav-left"><div class="window-controls"><span class="window-dot red"></span><div class="logo"><span>星演</span></div><span class="window-dot yellow"></span></div></div><div class="nav-version">v1.0.0</div></nav>
                 <div class="main-container">
-                    <div class="left-sidebar">
+                    <div class="left-sidebar" style="width:${state.ui.panelWidths.leftSidebar}px">
                         <div class="input-section">
                             <label class="form-label">输入文本内容：</label>
                             <textarea id="input-text" class="form-textarea" placeholder="请输入需要分析的文本...">${state.inputText}</textarea>
@@ -1263,6 +1374,7 @@ ${JSON.stringify({ entities: state.graphData.nodes, relations: state.graphData.l
                         </div>
 
                     </div>
+                    <div class="panel-resizer" data-target="leftSidebar" data-side="right" data-min="220" data-max="560"></div>
                     <div class="graph-container">
                         <div class="graph-header">
                             <span class="graph-title">🖥️ 星演图谱</span>
@@ -1286,7 +1398,8 @@ ${JSON.stringify({ entities: state.graphData.nodes, relations: state.graphData.l
                         </div>
                     </div>
                     ${state.ui.rightPanelCollapsed ? '' : `
-                        <div class="right-panel">
+                        <div class="panel-resizer" data-target="rightPanel" data-side="left" data-min="220" data-max="600"></div>
+                        <div class="right-panel" style="width:${state.ui.panelWidths.rightPanel}px">
                             <div class="collapse-bar"><button class="btn-collapse" style="width:auto;padding:4px 10px" onclick="toggleRightPanel()">最小化 图谱信息面板</button></div>
                             <div class="panel-section">
                                 <div class="panel-title">图谱信息</div>
@@ -1305,7 +1418,8 @@ ${JSON.stringify({ entities: state.graphData.nodes, relations: state.graphData.l
                         </div>
                     `}
                     ${state.ui.peoplePanelCollapsed ? '' : `
-                        <div class="people-panel">
+                        <div class="panel-resizer" data-target="peoplePanel" data-side="left" data-min="220" data-max="600"></div>
+                        <div class="people-panel" style="width:${state.ui.panelWidths.peoplePanel}px">
                             <div class="collapse-bar"><button class="btn-collapse" style="width:auto;padding:4px 10px" onclick="togglePeoplePanel()">最小化 人物列表面板</button></div>
                             <div class="panel-section people-section">
                                 <div class="panel-title">人物列表（自主社交）</div>
@@ -1317,7 +1431,8 @@ ${JSON.stringify({ entities: state.graphData.nodes, relations: state.graphData.l
                         </div>
                     `}
                     ${state.ui.reasoningPanelCollapsed ? '' : `
-                        <div class="reasoning-panel">
+                        <div class="panel-resizer" data-target="reasoningPanel" data-side="left" data-min="260" data-max="680"></div>
+                        <div class="reasoning-panel" style="width:${state.ui.panelWidths.reasoningPanel}px">
                             <div class="reasoning-header">
                                 <span class="panel-title" style="margin:0">推演过程</span>
                                 <button class="btn-collapse" style="width:auto;padding:4px 10px" onclick="toggleReasoningPanel()">最小化 推演过程面板</button>
@@ -1332,6 +1447,7 @@ ${JSON.stringify({ entities: state.graphData.nodes, relations: state.graphData.l
             document.getElementById('custom-prompt')?.addEventListener('input', e => state.customPrompt = e.target.value);
             document.getElementById('import-file')?.addEventListener('change', importGraph);
             renderReasoningCards();
+            initPanelResizers();
             
             if (state.graphData.nodes.length > 0 && !state.isBuilding) {
                 setTimeout(renderGraph, 100);
