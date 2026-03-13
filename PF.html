@@ -165,6 +165,7 @@
     <div id="app"></div>
     <input type="file" id="import-file" class="hidden-input" accept=".json">
     <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+    <script src="graph_schema.js"></script>
     <script>
         const state = {
             graphData: { nodes: [], links: [] },
@@ -198,58 +199,10 @@
             }
         };
         
-        const typeColors = {
-            '人物': '#ffcdd2',           // 粉色
-            'MBTI类型': '#b3e5fc',       // 浅蓝
-            '星座': '#b3e5fc',
-            '职业': '#b3e5fc',
-            '学历': '#b3e5fc',
-            '专业': '#b3e5fc',
-            '家庭氛围': '#b3e5fc',
-            '资产/财务': '#fff9c4',      // 浅黄
-            '休闲方式': '#c8e6c9',       // 浅绿
-            '价值观/观点': '#e1bee7',    // 浅紫
-            '心理状态/创伤': '#e1bee7',
-            '压力与焦虑': '#e1bee7',
-            '核心需求': '#e1bee7',
-            '关系事件': '#ffe0b2',       // 浅橙
-            '地点': '#d7ccc8',           // 浅棕
-            '其他': '#b2dfdb'            // 青色
-        };
-        
-        // 实体类型分组
-        const typeGroups = {
-            '人物': '人物',
-            'MBTI类型': '人物属性', '星座': '人物属性', '职业': '人物属性', '学历': '人物属性', '专业': '人物属性', '家庭氛围': '人物属性',
-            '资产/财务': '资产/财务',
-            '休闲方式': '休闲方式',
-            '价值观/观点': '内心', '心理状态/创伤': '内心', '压力与焦虑': '内心', '核心需求': '内心',
-            '关系事件': '关系事件',
-            '地点': '地点',
-            '其他': '其他'
-        };
-        
-        // 实体类型颜色（按分组）
-        const entityTypeColors = {
-            '人物': '#ffcdd2',
-            '人物属性': '#b3e5fc',
-            '资产/财务': '#fff9c4',
-            '休闲方式': '#c8e6c9',
-            '内心': '#e1bee7',
-            '关系事件': '#ffe0b2',
-            '地点': '#d7ccc8',
-            '其他': '#b2dfdb'
-        };
-        
-        // 关系类型颜色
-        const relationColors = {
-            // 社会关系
-            '情侣': '#e91e63', '密友': '#e91e63', '亲戚': '#e91e63', '夫妻': '#e91e63', '前任': '#e91e63', '父子': '#e91e63', '父女': '#e91e63', '母女': '#e91e63', '同事': '#e91e63',
-            // 属性映射
-            '性格为': '#2196f3', '属于星座': '#2196f3', '职业为': '#2196f3', '最高学历为': '#2196f3', '主修专业': '#2196f3', '成长于': '#2196f3', '持有资产': '#2196f3', '持有观点': '#2196f3', '面临压力': '#2196f3', '爱好是': '#2196f3', '渴求': '#2196f3',
-            // 事件行为
-            '参与事件': '#4caf50', '发生地': '#4caf50', '曾遭遇': '#4caf50', '关注/干预': '#4caf50', '推荐/建议': '#4caf50'
-        };
+        const typeColors = KG_SCHEMA.typeColors;
+        const typeGroups = KG_SCHEMA.typeGroups;
+        const entityTypeColors = KG_SCHEMA.entityTypeColors;
+        const relationColors = KG_SCHEMA.relationColors;
         
         let showType = true, showAttributes = true, simulation = null;
         const API_KEY = 'sk-cp-A9z1o0km6DeGKloUzgRyIbeiWR40fji97-1Fz4jGS_McfYsojJiq6K0eJ_B_W6eCDKxBNNEpzBmTW4yKr8tMxJWIFmQ7Ss8xNJm31lEFH3PcmY5H_1dqG0U';
@@ -514,49 +467,10 @@
             const prompt = `从以下文本提取知识图谱实体和关系。请严格按照以下类型分类，仅仅返回JSON格式：
 
 【实体类型 - 节点类别】
-- 人物：具体的人物个体（如：林薇、陈默、苏晴等）
-- MBTI类型：性格心理指标（如：INFP、ESTJ等）
-- 星座：占星分类（如：双鱼座、天蝎座）
-- 职业：具体的职位或行业（如：自由插画师、项目经理、大学教授等）
-- 学历：受教育水平（如：硕士、本科）
-- 专业：学习的领域（如：美术教育、土木工程）
-- 家庭氛围：对原生家庭环境的描述（如：高知开放、传统务实）
-- 资产/财务：具体的资产形式（如：存款、房产、贷款房）
-- 价值观/观点：包括消费观，金钱观，生育意愿等抽象态度
-- 压力与焦虑：职业焦虑或工作压力源（如：AI替代、晋升瓶颈）
-- 休闲方式：个人爱好与生活习惯（如：看展、打篮球）
-- 核心需求：深层心理诉求（如：情感深度、安全感）
-- 地点：涉及的地域（如：云南、老家）
-- 关系事件：交往过程中的关键节点（如：共同旅行、公益墙绘）
-- 心理状态/创伤：过往经历留下的心理印记（如：PUA经历、恐惧冲突）
+${KG_SCHEMA.entityTypeDescriptions}
 
 【关系类型 - 边语义】
-核心社交关系：
-- [情侣]：人物 ↔ 人物
-- [密友]：人物 → 人物
-- [父子/父女/母女]：人物 → 人物
-- [亲戚]：人物 → 人物（如：表姐、舅舅）
-- [同事]：人物 ↔ 人物
-- [夫妻]：人物 ↔ 人物
-- [前任]：人物 → 人物/群体
-属性映射关系：
-- [性格为]：人物 → MBTI类型
-- [属于星座]：人物 → 星座
-- [职业为]：人物 → 职业
-- [最高学历为]：人物 → 学历
-- [主修专业]：人物 → 专业
-- [成长于]：人物 → 家庭氛围
-- [持有资产]：人物 → 资产/财务
-- [持有观点]：人物 → 价值观/观点
-- [面临压力]：人物 → 压力与焦虑
-- [爱好是]：人物 → 休闲方式
-- [渴求]：人物 → 核心需求
-事件与行为关系：
-- [参与事件]：人物 → 关系事件
-- [发生地]：关系事件 → 地点
-- [曾遭遇]：人物 → 心理状态/创伤
-- [关注/干预]：亲友 → 另一方/关系
-- [推荐/建议]：密友 → 人物
+${KG_SCHEMA.relationTypeDescriptions}
 
 JSON格式：
 {
@@ -564,7 +478,9 @@ JSON格式：
   "relations": [{source, target, relation}]
 }
 
-文本:\n\n ${state.inputText}`;
+文本:
+
+ ${state.inputText}`;
             
             try {
                 const result = await callLLM(prompt);
@@ -617,9 +533,9 @@ JSON格式：
             
             const defaultPrompt = `你是一个知识图谱审阅优化助手。请对已提取的知识图谱进行审阅和优化。
 
-【实体类型】人物、MBTI类型、星座、职业、学历、专业、家庭氛围、资产/财务、价值观/观点、压力与焦虑、休闲方式、核心需求、地点、关系事件、心理状态/创伤
+【实体类型】${KG_SCHEMA.entityTypesText}
 
-【关系类型】情侣、密友、父子/父女/母女/母子、兄弟/姐妹、同事、熟人、朋友、亲戚、夫妻、前任、性格为、星座为、职业为、最高学历为、主修专业、成长于、持有资产、持有观点、面临压力、爱好是、渴求、参与事件、发生地、曾遭遇、关注/干预、推荐/建议
+【关系类型】${KG_SCHEMA.relationTypesText}
 
 当前图谱数据：
 - 实体: ${JSON.stringify(entities.map(e => ({id: e.id, name: e.name, type: e.type, description: e.description})))}
