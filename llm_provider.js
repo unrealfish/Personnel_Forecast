@@ -49,7 +49,7 @@
         return {
           provider,
           baseUrl: 'http://127.0.0.1:11434',
-          model: 'qwen2.5:7b',
+          model: 'qwen3-vl:8b',
           apiKey: '',
           temperature: 0.3
         };
