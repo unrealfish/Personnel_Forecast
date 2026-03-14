@@ -159,9 +159,10 @@
 
         .people-section { flex: 1; display: flex; flex-direction: column; min-height: 0; }
         .agent-list { display: flex; flex-direction: column; gap: 8px; flex: 1; min-height: 0; overflow-y: auto; }
-        .agent-card { border: 1px solid rgba(10,132,255,0.22); border-radius: 10px; padding: 8px; background: rgba(255,255,255,0.92); }
+        .agent-card { border: 1px solid rgba(10,132,255,0.22); border-radius: 10px; padding: 8px; background: rgba(255,255,255,0.92); cursor: pointer; }
         .agent-card-name { font-size: 12px; font-weight: 600; color: #1f3b66; margin-bottom: 4px; }
         .agent-card-line { font-size: 11px; color: #555; line-height: 1.45; margin-bottom: 2px; }
+        .agent-card-intro { font-size: 11px; color: #555; line-height: 1.5; max-height: 84px; overflow-y: auto; padding-right: 4px; white-space: pre-wrap; word-break: break-word; }
 
         .agent-card.glow-speech { border-color: rgba(48,209,88,0.9); box-shadow: 0 0 0 1px rgba(48,209,88,0.6), 0 0 18px rgba(48,209,88,0.45); }
         .agent-card.glow-action { border-color: rgba(255,69,58,0.9); box-shadow: 0 0 0 1px rgba(255,69,58,0.6), 0 0 18px rgba(255,69,58,0.45); }
@@ -221,6 +222,7 @@
                 envReady: false,
                 rounds: 2,
                 duration: 30,
+                parallelCount: 1,
                 eventsInput: '',
                 recommendedRounds: 2,
                 recommendedDuration: 30,
@@ -256,7 +258,10 @@
                 rightPanelCollapsed: false,
                 peoplePanelCollapsed: false,
                 reasoningPanelCollapsed: false,
-                simulationCollapsed: false,
+                modelConfigCollapsed: false,
+                graphBuildCollapsed: false,
+                simulationSectionCollapsed: false,
+                reportSectionCollapsed: false,
                 graphBackground: 'gray',
                 panelWidths: {
                     leftSidebar: 280,
@@ -719,10 +724,7 @@ ${relationPart}`;
                 return {
                     id: person.id,
                     name: person.name,
-                    personality: pick('性格为') || '未设置',
-                    occupation: pick('职业为') || '未设置',
-                    coreNeed: pick('渴求') || '未设置',
-                    values: pick('持有观点') || '未设置'
+                    intro: person.description || pick('性格为') || pick('职业为') || '暂无人物简介'
                 };
             });
         }
@@ -733,12 +735,10 @@ ${relationPart}`;
                 return '<div class="sim-hint">构建环境后会根据图谱人物自动生成 Agent 卡片</div>';
             }
             return `<div class="agent-list">${agents.map(agent => `
-                <div class="agent-card ${getAgentSignal(agent.id) === 'speech' ? 'glow-speech' : getAgentSignal(agent.id) === 'action' ? 'glow-action' : ''}">
+                <div class="agent-card ${getAgentSignal(agent.id) === 'speech' ? 'glow-speech' : getAgentSignal(agent.id) === 'action' ? 'glow-action' : ''}" onclick="showEntityDetailById('${escapeHtml(String(agent.id))}')">
                     <div class="agent-card-name">${escapeHtml(agent.name)}（ID:${escapeHtml(agent.id)}）</div>
-                    ${(groupVisibility['人物属性'] || groupVisibility['资产/财务'] || groupVisibility['休闲方式']) ? `<div class="agent-card-line"><b>性格</b>：${escapeHtml(agent.personality)}</div>
-                    <div class="agent-card-line"><b>职业</b>：${escapeHtml(agent.occupation)}</div>` : ''}
-                    ${groupVisibility['内心'] ? `<div class="agent-card-line"><b>核心需求</b>：${escapeHtml(agent.coreNeed)}</div>
-                    <div class="agent-card-line"><b>观点</b>：${escapeHtml(agent.values)}</div>` : ''}
+                    <div class="agent-card-line"><b>人物简介</b></div>
+                    <div class="agent-card-intro">${escapeHtml(agent.intro)}</div>
                 </div>
             `).join('')}</div>`;
         }
@@ -748,9 +748,14 @@ ${relationPart}`;
             render();
         }
 
-        function toggleSimulationPanel() {
-            state.ui.simulationCollapsed = !state.ui.simulationCollapsed;
+        function toggleLeftSection(sectionKey) {
+            if (!Object.prototype.hasOwnProperty.call(state.ui, sectionKey)) return;
+            state.ui[sectionKey] = !state.ui[sectionKey];
             render();
+        }
+
+        function toggleSimulationPanel() {
+            toggleLeftSection('simulationSectionCollapsed');
         }
 
         function togglePeoplePanel() {
@@ -1301,6 +1306,17 @@ ${JSON.stringify(neighborhood)}
             if (detail) detail.remove();
         }
 
+        function showEntityDetailById(entityId) {
+            const id = String(entityId || '');
+            const entity = (state.graphData?.nodes || []).find(n => String(n.id) === id);
+            if (!entity) {
+                addLog(`未找到实体：${id}`, 'warning');
+                return;
+            }
+            showEntityDetail(entity);
+        }
+
+
         async function runSandboxSimulation() {
             if (!window.runMultiAgentRoutingDemo) { addLog('多智能体模块未加载', 'error'); return; }
             if (state.graphData.nodes.length === 0) { addLog('请先构建或导入知识图谱', 'info'); return; }
@@ -1336,6 +1352,7 @@ ${JSON.stringify(neighborhood)}
                 },
                 rounds: Number(state.simConfig.rounds) || 1,
                 duration: Number(state.simConfig.duration) || 30,
+                intentParallelCount: Math.max(1, Number(state.simConfig.parallelCount) || 1),
                 customEvents: parseCustomEvents(state.simConfig.eventsInput),
                 onEventComplete: ({ round, eventIndex, event, graphData }) => {
                     state.graphData = graphData;
@@ -1481,6 +1498,11 @@ ${JSON.stringify(neighborhood)}
         }
 
         function onSimConfigInput(key, value) {
+            if (key === 'rounds' || key === 'duration' || key === 'parallelCount') {
+                const n = Number(value);
+                state.simConfig[key] = Number.isFinite(n) && n > 0 ? Math.floor(n) : 1;
+                return;
+            }
             state.simConfig[key] = value;
         }
         
@@ -1746,7 +1768,7 @@ ${materialDigest}
                 { key: 'peoplePanelCollapsed', title: '人物列表面板', action: 'togglePeoplePanel()' },
                 { key: 'reasoningPanelCollapsed', title: '推演过程面板', action: 'toggleReasoningPanel()' }
             ].filter(panel => state.ui[panel.key]);
-            const minimizedButtonsHtml = minimizedPanels.map(panel => `<button class="btn-minimized" onclick="${panel.action}">${panel.title}</button>`).join('');
+            const minimizedButtonsHtml = minimizedPanels.map(panel => `<button class="btn-minimized" onclick="${panel.action}">${panel.title} →</button>`).join('');
             const legendHtml = state.graphData.nodes.length > 0 ? `
                 <div style="margin-bottom:12px">
                     <div style="font-size:11px;font-weight:bold;margin-bottom:6px">实体类型</div>
@@ -1775,64 +1797,78 @@ ${materialDigest}
                 ? `<div class="sim-hint">当前目录：<b>${state.currentSimRun.folderName}</b></div>`
                 : '<div class="sim-hint">完成推演后会生成带时间戳的目录与轮次文件映射</div>';
             const llmCfg = getMergedLlmConfig();
+            const leftSections = {
+                model: { title: '模型配置', key: 'modelConfigCollapsed' },
+                graph: { title: '图谱生成', key: 'graphBuildCollapsed' },
+                simulation: { title: '模拟推演', key: 'simulationSectionCollapsed' },
+                report: { title: '报告生成', key: 'reportSectionCollapsed' }
+            };
+            const leftArrow = (section) => state.ui[leftSections[section].key] ? '→' : '↓';
+            const panelArrow = (collapsed) => collapsed ? '→' : '↓';
             
             app.innerHTML = `
                 <nav class="top-navbar"><div class="nav-left"><div class="window-controls"><span class="window-dot red"></span><div class="logo"><span>星演</span></div><span class="window-dot yellow"></span></div></div><div class="nav-version">v1.0.0</div></nav>
                 <div class="main-container">
                     <div class="left-sidebar" style="width:${state.ui.panelWidths.leftSidebar}px">
+                        <div class="prompt-section">
+                            <div style="display:flex;justify-content:space-between;align-items:center;">
+                                <label class="form-label" style="margin:0;font-weight:600">${leftSections.model.title}</label>
+                                <button class="btn-collapse" style="width:auto;padding:4px 8px" onclick="toggleLeftSection('${leftSections.model.key}')">${leftSections.model.title} ${leftArrow('model')}</button>
+                            </div>
+                            ${state.ui.modelConfigCollapsed ? '' : `
+                                <select class="sim-input" onchange="onLlmProviderChange(this.value)">
+                                    <option value="minimax" ${llmCfg.provider === 'minimax' ? 'selected' : ''}>MiniMax</option>
+                                    <option value="aliyun" ${llmCfg.provider === 'aliyun' ? 'selected' : ''}>阿里云 DashScope</option>
+                                    <option value="ollama" ${llmCfg.provider === 'ollama' ? 'selected' : ''}>Ollama</option>
+                                    <option value="openai_compatible" ${llmCfg.provider === 'openai_compatible' ? 'selected' : ''}>OpenAI兼容接口</option>
+                                </select>
+                                <input class="sim-input" style="margin-top:8px" placeholder="Base URL" value="${escapeHtml(llmCfg.baseUrl || '')}" onchange="onLlmConfigInput('baseUrl', this.value)">
+                                <input class="sim-input" style="margin-top:8px" placeholder="Model" value="${escapeHtml(llmCfg.model || '')}" onchange="onLlmConfigInput('model', this.value)">
+                                <input class="sim-input" style="margin-top:8px" type="password" placeholder="API Key（Ollama可留空）" value="${escapeHtml(llmCfg.apiKey || '')}" onchange="onLlmConfigInput('apiKey', this.value)">
+                                <input class="sim-input" style="margin-top:8px" type="number" min="0" max="2" step="0.1" value="${Number(llmCfg.temperature ?? 0.3)}" onchange="onLlmConfigInput('temperature', this.value)">
+                            `}
+                        </div>
+
                         <div class="input-section">
-                            <label class="form-label">输入文本内容：</label>
-                            <textarea id="input-text" class="form-textarea" placeholder="请输入需要分析的文本...">${state.inputText}</textarea>
-                            <button class="btn-build" onclick="extractGraph()" ${state.isBuilding?'disabled':''}>${btnText}</button>
-                        <div class="prompt-section">
-                            <label class="form-label">自定义优化提示词：</label>
-                            <textarea id="custom-prompt" class="prompt-textarea" placeholder="额外优化要求...">${state.customPrompt}</textarea>
-                            <button class="btn-build btn-optimize" onclick="runOptimization()" ${state.isBuilding?'disabled':''}>重新优化</button>
-                            <div style="margin-top:8px">
-                                <label class="form-label">人际网络自动扩充轮次：</label>
-                                <input class="sim-input" type="number" min="1" value="${state.expansionConfig.rounds}" onchange="onExpansionRoundsChange(this.value)" ${state.isBuilding?'disabled':''}>
-                                <label class="form-label" style="margin-top:8px">LLM 并行调用个数：</label>
-                                <input class="sim-input" type="number" min="1" value="${state.expansionConfig.parallelCount}" onchange="onExpansionParallelChange(this.value)" ${state.isBuilding?'disabled':''}>
-                                <button class="btn-build" style="margin-top:8px" onclick="autoExpandSocialNetwork()" ${state.isBuilding?'disabled':''}>AI扩充人际网络</button>
+                            <div style="display:flex;justify-content:space-between;align-items:center;">
+                                <label class="form-label" style="margin:0;font-weight:600">${leftSections.graph.title}</label>
+                                <button class="btn-collapse" style="width:auto;padding:4px 8px" onclick="toggleLeftSection('${leftSections.graph.key}')">${leftSections.graph.title} ${leftArrow('graph')}</button>
                             </div>
+                            ${state.ui.graphBuildCollapsed ? '' : `
+                                <label class="form-label" style="margin-top:8px">输入文本内容：</label>
+                                <textarea id="input-text" class="form-textarea" placeholder="请输入需要分析的文本...">${state.inputText}</textarea>
+                                <button class="btn-build" onclick="extractGraph()" ${state.isBuilding?'disabled':''}>${btnText}</button>
+                                <label class="form-label" style="margin-top:8px">自定义优化提示词：</label>
+                                <textarea id="custom-prompt" class="prompt-textarea" placeholder="额外优化要求...">${state.customPrompt}</textarea>
+                                <button class="btn-build btn-optimize" onclick="runOptimization()" ${state.isBuilding?'disabled':''}>重新优化</button>
+                                <div style="margin-top:8px">
+                                    <label class="form-label">人际网络自动扩充轮次：</label>
+                                    <input class="sim-input" type="number" min="1" value="${state.expansionConfig.rounds}" onchange="onExpansionRoundsChange(this.value)" ${state.isBuilding?'disabled':''}>
+                                    <label class="form-label" style="margin-top:8px">LLM 并行调用个数：</label>
+                                    <input class="sim-input" type="number" min="1" value="${state.expansionConfig.parallelCount}" onchange="onExpansionParallelChange(this.value)" ${state.isBuilding?'disabled':''}>
+                                    <button class="btn-build" style="margin-top:8px" onclick="autoExpandSocialNetwork()" ${state.isBuilding?'disabled':''}>AI扩充人际网络</button>
+                                </div>
+                                <div class="btn-row">
+                                    <button class="btn-build btn-build-sm btn-import" onclick="triggerImport()">导入图谱</button>
+                                    <button class="btn-build btn-build-sm btn-export" onclick="exportGraph()">导出图谱</button>
+                                </div>
+                            `}
                         </div>
-                        <div class="prompt-section">
-                            <label class="form-label">LLM 接口配置：</label>
-                            <select class="sim-input" onchange="onLlmProviderChange(this.value)">
-                                <option value="minimax" ${llmCfg.provider === 'minimax' ? 'selected' : ''}>MiniMax</option>
-                                <option value="aliyun" ${llmCfg.provider === 'aliyun' ? 'selected' : ''}>阿里云 DashScope</option>
-                                <option value="ollama" ${llmCfg.provider === 'ollama' ? 'selected' : ''}>Ollama</option>
-                                <option value="openai_compatible" ${llmCfg.provider === 'openai_compatible' ? 'selected' : ''}>OpenAI兼容接口</option>
-                            </select>
-                            <input class="sim-input" style="margin-top:8px" placeholder="Base URL" value="${escapeHtml(llmCfg.baseUrl || '')}" onchange="onLlmConfigInput('baseUrl', this.value)">
-                            <input class="sim-input" style="margin-top:8px" placeholder="Model" value="${escapeHtml(llmCfg.model || '')}" onchange="onLlmConfigInput('model', this.value)">
-                            <input class="sim-input" style="margin-top:8px" type="password" placeholder="API Key（Ollama可留空）" value="${escapeHtml(llmCfg.apiKey || '')}" onchange="onLlmConfigInput('apiKey', this.value)">
-                            <input class="sim-input" style="margin-top:8px" type="number" min="0" max="2" step="0.1" value="${Number(llmCfg.temperature ?? 0.3)}" onchange="onLlmConfigInput('temperature', this.value)">
-                        </div>
-                        <div class="report-section">
-                            <label class="form-label">报告主题：</label>
-                            <textarea class="prompt-textarea" placeholder="例如：围绕某个家庭的资产变化与关系冲突" onchange="onReportTopicInput(this.value)">${state.reportConfig.topic}</textarea>
-                            <textarea class="prompt-textarea" style="margin-top:8px" placeholder="文章风格，例如：深度调查、数据分析、纪实叙事" onchange="onReportStyleInput(this.value)">${state.reportConfig.style || ''}</textarea>
-                            <label class="report-checkbox"><input type="checkbox" onchange="onReportGodViewToggle(this.checked)" ${state.reportConfig.includeGodView ? 'checked' : ''}>允许上帝视角（可包含人物内心）</label>
-                            <button class="btn-build" style="margin-top:8px" onclick="generateReportSeries()" ${(state.reportConfig.isGenerating || state.isBuilding)?'disabled':''}>${state.reportConfig.isGenerating ? '报告生成中...' : '生成报告'}</button>
-                        </div>
-                            <div class="btn-row">
-                                <button class="btn-build btn-build-sm btn-import" onclick="triggerImport()">导入图谱</button>
-                                <button class="btn-build btn-build-sm btn-export" onclick="exportGraph()">导出图谱</button>
-                            </div>
-                        </div>
+
                         <div class="sim-section">
                             <div style="display:flex;justify-content:space-between;align-items:center;">
-                                <label class="form-label" style="margin:0">推演环境配置：</label>
-                                <button class="btn-collapse" style="width:auto;padding:4px 8px" onclick="toggleSimulationPanel()">${state.ui.simulationCollapsed ? '展开环境配置 ↓' : '折叠环境配置 ↑'}</button>
+                                <label class="form-label" style="margin:0;font-weight:600">${leftSections.simulation.title}</label>
+                                <button class="btn-collapse" style="width:auto;padding:4px 8px" onclick="toggleLeftSection('${leftSections.simulation.key}')">${leftSections.simulation.title} ${leftArrow('simulation')}</button>
                             </div>
-                            ${state.ui.simulationCollapsed ? '' : `
+                            ${state.ui.simulationSectionCollapsed ? '' : `
                                 <button class="btn-build" onclick="buildSimulationEnvironment()" ${state.isBuilding?'disabled':''}>构建推演环境</button>
                                 <p style="font-size:11px;font-weight:bold;margin-bottom:6px;margin-top:12px">推演参数</p>
                                 <div class="sim-grid">
                                     <input class="sim-input" type="number" min="1" value="${state.simConfig.rounds}" onchange="onSimConfigInput('rounds', this.value)" ${!state.simConfig.envReady?'disabled':''} placeholder="轮次">
                                     <input class="sim-input" type="number" min="5" value="${state.simConfig.duration}" onchange="onSimConfigInput('duration', this.value)" ${!state.simConfig.envReady?'disabled':''} placeholder="时长(min)">
                                 </div>
+                                <label class="form-label" style="margin-top:8px">人物轮询并行数：</label>
+                                <input class="sim-input" type="number" min="1" value="${state.simConfig.parallelCount}" onchange="onSimConfigInput('parallelCount', this.value)" ${!state.simConfig.envReady?'disabled':''} placeholder="例如 5">
                                 <div class="sim-hint">事件输入格式：<b>轮次:事件描述</b>，例如 <b>2:发生争执</b></div>
                                 <textarea class="sim-events" onchange="onSimConfigInput('eventsInput', this.value)" ${!state.simConfig.envReady?'disabled':''}>${state.simConfig.eventsInput}</textarea>
                                 <button class="btn-build" style="margin-top:8px" onclick="runSandboxSimulation()" ${!state.simConfig.envReady?'disabled':''}>▶ 推演</button>
@@ -1846,6 +1882,19 @@ ${materialDigest}
                             `}
                         </div>
 
+                        <div class="report-section">
+                            <div style="display:flex;justify-content:space-between;align-items:center;">
+                                <label class="form-label" style="margin:0;font-weight:600">${leftSections.report.title}</label>
+                                <button class="btn-collapse" style="width:auto;padding:4px 8px" onclick="toggleLeftSection('${leftSections.report.key}')">${leftSections.report.title} ${leftArrow('report')}</button>
+                            </div>
+                            ${state.ui.reportSectionCollapsed ? '' : `
+                                <label class="form-label" style="margin-top:8px">报告主题：</label>
+                                <textarea class="prompt-textarea" placeholder="例如：围绕某个家庭的资产变化与关系冲突" onchange="onReportTopicInput(this.value)">${state.reportConfig.topic}</textarea>
+                                <textarea class="prompt-textarea" style="margin-top:8px" placeholder="文章风格，例如：深度调查、数据分析、纪实叙事" onchange="onReportStyleInput(this.value)">${state.reportConfig.style || ''}</textarea>
+                                <label class="report-checkbox"><input type="checkbox" onchange="onReportGodViewToggle(this.checked)" ${state.reportConfig.includeGodView ? 'checked' : ''}>允许上帝视角（可包含人物内心）</label>
+                                <button class="btn-build" style="margin-top:8px" onclick="generateReportSeries()" ${(state.reportConfig.isGenerating || state.isBuilding)?'disabled':''}>${state.reportConfig.isGenerating ? '报告生成中...' : '生成报告'}</button>
+                            `}
+                        </div>
                     </div>
                     <div class="panel-resizer" data-target="leftSidebar" data-side="right" data-min="220" data-max="560"></div>
                     <div class="graph-container">
@@ -1877,7 +1926,7 @@ ${materialDigest}
                     ${state.ui.rightPanelCollapsed ? '' : `
                         <div class="panel-resizer" data-target="rightPanel" data-side="left" data-min="220" data-max="600"></div>
                         <div class="right-panel" style="width:${state.ui.panelWidths.rightPanel}px">
-                            <div class="collapse-bar"><button class="btn-collapse" style="width:auto;padding:4px 10px" onclick="toggleRightPanel()">最小化 图谱信息面板</button></div>
+                            <div class="collapse-bar"><button class="btn-collapse" style="width:auto;padding:4px 10px" onclick="toggleRightPanel()">${`图谱信息面板 ${panelArrow(state.ui.rightPanelCollapsed)}`}</button></div>
                             <div class="panel-section">
                                 <div class="panel-title">图谱信息</div>
                                 <div class="stats-grid">
@@ -1897,7 +1946,7 @@ ${materialDigest}
                     ${state.ui.peoplePanelCollapsed ? '' : `
                         <div class="panel-resizer" data-target="peoplePanel" data-side="left" data-min="220" data-max="600"></div>
                         <div class="people-panel" style="width:${state.ui.panelWidths.peoplePanel}px">
-                            <div class="collapse-bar"><button class="btn-collapse" style="width:auto;padding:4px 10px" onclick="togglePeoplePanel()">最小化 人物列表面板</button></div>
+                            <div class="collapse-bar"><button class="btn-collapse" style="width:auto;padding:4px 10px" onclick="togglePeoplePanel()">${`人物列表面板 ${panelArrow(state.ui.peoplePanelCollapsed)}`}</button></div>
                             <div class="panel-section people-section">
                                 <div class="panel-title">人物列表（自主社交）</div>
                                 <div class="btn-row agent-panel-toggle" style="flex-wrap:wrap">
@@ -1912,7 +1961,7 @@ ${materialDigest}
                         <div class="reasoning-panel" style="width:${state.ui.panelWidths.reasoningPanel}px">
                             <div class="reasoning-header">
                                 <span class="panel-title" style="margin:0">推演过程</span>
-                                <button class="btn-collapse" style="width:auto;padding:4px 10px" onclick="toggleReasoningPanel()">最小化 推演过程面板</button>
+                                <button class="btn-collapse" style="width:auto;padding:4px 10px" onclick="toggleReasoningPanel()">${`推演过程面板 ${panelArrow(state.ui.reasoningPanelCollapsed)}`}</button>
                             </div>
                             <div class="reasoning-waterfall" id="reasoning-waterfall"></div>
                         </div>
@@ -1948,6 +1997,7 @@ ${materialDigest}
         window.buildSimulationEnvironment = buildSimulationEnvironment;
         window.onSimConfigInput = onSimConfigInput;
         window.toggleRightPanel = toggleRightPanel;
+        window.toggleLeftSection = toggleLeftSection;
         window.toggleSimulationPanel = toggleSimulationPanel;
         window.togglePeoplePanel = togglePeoplePanel;
         window.toggleReasoningPanel = toggleReasoningPanel;
