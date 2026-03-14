@@ -1,0 +1,2698 @@
+{
+  "version": "KG-v3",
+  "exportTime": "2026-03-13T11:08:51.918Z",
+  "entities": [
+    {
+      "id": 1,
+      "name": "周唯",
+      "type": "人物",
+      "description": "灵犀创意创始人/CEO，ENTJ，狮子座，某常青藤大学MBA，父亲周建国是民营企业家，母亲李慧敏是法院大法官，家庭氛围精英教育崇尚优胜劣汰，核心焦虑是公司无法在2027年前完成B轮融资，喜好追求效率和结果，目标导向、果断自信、善于激励团队",
+      "expansionStatus": "done",
+      "expandedByAI": true,
+      "expandedRound": 1
+    },
+    {
+      "id": 2,
+      "name": "苏曼",
+      "type": "人物",
+      "description": "灵犀创意运营总监/COO，ISTJ，处女座，清华大学工业工程本科，父亲苏建国是航天高级工程师，母亲陈美玲是会计师，家庭氛围严谨秩序容错率极低，核心焦虑是团队纪律涣散导致交付质量失控，喜好追求完美和秩序，细致负责、注重规则和实际执行力",
+      "expansionStatus": "done",
+      "expandedByAI": true,
+      "expandedRound": 1
+    },
+    {
+      "id": 3,
+      "name": "阿K",
+      "type": "人物",
+      "description": "灵犀创意创意总监，ENFP，父母先锋艺术家林远山和沈丹青，技能视觉叙事氛围渲染，弱点无法处理Excel，喜好创意设计和艺术表达，热情洋溢、创意丰富、善于沟通",
+      "expansionStatus": "done",
+      "expandedByAI": true,
+      "expandedRound": 1
+    },
+    {
+      "id": 4,
+      "name": "文森特",
+      "type": "人物",
+      "description": "灵犀创意资深文案，INFJ，书香门第，祖父藏书家周德厚，哲学硕士，喜好冥想小众胶片，公司精神导师，擅长深度思考和精神引导，富有同理心、理想主义、善于洞察人心",
+      "expansionStatus": "done",
+      "expandedByAI": true,
+      "expandedRound": 1
+    },
+    {
+      "id": 5,
+      "name": "琳达",
+      "type": "人物",
+      "description": "灵犀创意市场总监，ESTP，父母张建国和李秀英经营小生意家庭草根韧性，技能酒桌资源整合，喜好泰拳重机车，擅长社交和资源获取，灵活务实、善于社交、喜欢行动",
+      "expansionStatus": "done",
+      "expandedByAI": true,
+      "expandedRound": 1
+    },
+    {
+      "id": 6,
+      "name": "小禾",
+      "type": "人物",
+      "description": "灵犀创意资深插画师，INFP，单亲家庭母亲方晓梅是中学老师，曾遭遇严重职场霸凌，技能治愈系画风，对文森特有极强精神依赖，喜好艺术创作，敏感细腻、富有创造力、追求内心价值，担忧AI技术取代插画师工作",
+      "expansionStatus": "done",
+      "expandedByAI": true,
+      "expandedRound": 1
+    },
+    {
+      "id": 7,
+      "name": "菲菲",
+      "type": "人物",
+      "description": "灵犀创意活动策划，ENTP，父母王教授和赵博士是高知家庭全家辩论爱好者，技能方案解构快速应变，喜好德州扑克，擅长逻辑分析和快速反应，思维敏捷、喜欢挑战、善于辩论",
+      "expansionStatus": "done",
+      "expandedByAI": true,
+      "expandedRound": 1
+    },
+    {
+      "id": 8,
+      "name": "老程",
+      "type": "人物",
+      "description": "灵犀创意技术负责人，INTP，计算机博士肄业（因研究方向分歧主动退学），父母程建国和陈芳是偏远地区支教教师，性格孤傲，喜好技术研究和系统架构设计，理性分析、爱好理论、善于解决复杂问题",
+      "expansionStatus": "done",
+      "expandedByAI": true,
+      "expandedRound": 1
+    },
+    {
+      "id": 9,
+      "name": "阿强",
+      "type": "人物",
+      "description": "灵犀创意后端开发，INTJ，父亲周建军是退役军官强调绝对服从和效率，技能安全攻防，喜好硬核科幻健身，擅长安全防护和技术实现，独立思考、战略眼光、追求效率",
+      "expansionStatus": "done",
+      "expandedByAI": true,
+      "expandedRound": 1
+    },
+    {
+      "id": 10,
+      "name": "老李",
+      "type": "人物",
+      "description": "灵犀创意财务主管，ISFJ，老牌财经大学学历（具体院校未提及），隐性技能看面相极速算账，父母李德清和王桂芳是上海里弄家庭极度精明守规，喜好精打打算和规则遵守，忠诚细心、任劳任怨、注重细节",
+      "expansionStatus": "done",
+      "expandedByAI": true,
+      "expandedRound": 1
+    },
+    {
+      "id": 11,
+      "name": "芳姐",
+      "type": "人物",
+      "description": "灵犀创意行政HR，ESFJ，办公室信息中心，隐性喜好给单身员工介绍对象，父母刘建国和马秀兰是退休社区干部掌控欲强热衷调解矛盾，擅长人际协调和员工关系维护，热情友好、善于照顾他人、注重团队和谐",
+      "expansionStatus": "done",
+      "expandedByAI": true,
+      "expandedRound": 1
+    },
+    {
+      "id": 12,
+      "name": "乐乐",
+      "type": "人物",
+      "description": "灵犀创意气氛组成员，ESFP，活跃团队氛围担当，喜好社交活动和氛围营造，充满活力、喜欢表现、善于调动氛围",
+      "expansionStatus": "done",
+      "expandedByAI": true,
+      "expandedRound": 1
+    },
+    {
+      "id": 13,
+      "name": "ENTJ",
+      "type": "MBTI类型",
+      "description": "外向直觉思考判断型人格，领导者型，适合战略规划和决策，目标导向、果断自信、善于激励团队"
+    },
+    {
+      "id": 14,
+      "name": "ISTJ",
+      "type": "MBTI类型",
+      "description": "内向感觉思考判断型人格，物流师型，适合运营管理和流程优化，细致负责、注重规则和实际执行力"
+    },
+    {
+      "id": 15,
+      "name": "ENFP",
+      "type": "MBTI类型",
+      "description": "外向直觉情感知觉型人格，竞选者型，适合创意发想和激励团队，热情洋溢、创意丰富、善于沟通"
+    },
+    {
+      "id": 16,
+      "name": "INFJ",
+      "type": "MBTI类型",
+      "description": "内向直觉情感判断型人格，提倡者型，适合精神引导和深度思考，富有同理心、理想主义、善于洞察人心"
+    },
+    {
+      "id": 17,
+      "name": "ESTP",
+      "type": "MBTI类型",
+      "description": "外向感觉思考知觉型人格，企业家型，适合资源整合和危机处理，灵活务实、善于社交、喜欢行动"
+    },
+    {
+      "id": 18,
+      "name": "INFP",
+      "type": "MBTI类型",
+      "description": "内向情感知觉型人格，调停者型，适合艺术创作和情感表达，敏感细腻、富有创造力、追求内心价值"
+    },
+    {
+      "id": 19,
+      "name": "ENTP",
+      "type": "MBTI类型",
+      "description": "外向直觉思考知觉型人格，辩论家型，适合快速应变和方案解构，思维敏捷、喜欢挑战、善于辩论"
+    },
+    {
+      "id": 20,
+      "name": "INTP",
+      "type": "MBTI类型",
+      "description": "内向思考知觉型人格，逻辑学家型，适合技术架构和系统设计，理性分析、爱好理论、善于解决复杂问题"
+    },
+    {
+      "id": 21,
+      "name": "INTJ",
+      "type": "MBTI类型",
+      "description": "内向直觉思考判断型人格，建筑师型，适合安全攻防和长期规划，独立思考、战略眼光、追求效率"
+    },
+    {
+      "id": 22,
+      "name": "ISFJ",
+      "type": "MBTI类型",
+      "description": "内向感觉情感判断型人格，守卫者型，适合财务管理和后勤保障，忠诚细心、任劳任怨、注重细节"
+    },
+    {
+      "id": 23,
+      "name": "ESFJ",
+      "type": "MBTI类型",
+      "description": "外向感觉情感判断型人格，执政官型，适合人力资源和团队协调，热情友好、善于照顾他人、注重团队和谐"
+    },
+    {
+      "id": 24,
+      "name": "ESFP",
+      "type": "MBTI类型",
+      "description": "外向感觉情感知觉型人格，表演者型，适合气氛营造和社交活动，充满活力、喜欢表现、善于调动氛围"
+    },
+    {
+      "id": 25,
+      "name": "狮子座",
+      "type": "星座",
+      "description": "火象星座，热爱竞争和领导，渴望被认可和尊重，自信慷慨、喜欢成为焦点、有强烈自尊心"
+    },
+    {
+      "id": 26,
+      "name": "处女座",
+      "type": "星座",
+      "description": "土象星座，追求完美，注重细节和秩序，擅长分析、追求卓越、注重实际效果"
+    },
+    {
+      "id": 27,
+      "name": "MBA",
+      "type": "学历",
+      "description": "工商管理硕士，常青藤大学商学院授予的商业管理硕士学位，代表高级商业管理教育背景"
+    },
+    {
+      "id": 28,
+      "name": "本科",
+      "type": "学历",
+      "description": "学士学位，完成四年制高等教育获得的初级学位，代表基础高等教育水平"
+    },
+    {
+      "id": 29,
+      "name": "硕士",
+      "type": "学历",
+      "description": "硕士学位，研究生阶段的学术认证学位，代表深入的专业研究能力"
+    },
+    {
+      "id": 30,
+      "name": "博士肄业",
+      "type": "学历",
+      "description": "博士研究生未毕业，已完成部分学业但未获得博士学位，代表高水平的学术研究经历"
+    },
+    {
+      "id": 31,
+      "name": "工业工程",
+      "type": "专业",
+      "description": "工程学科专业，研究效率优化和生产系统管理，注重流程优化和效率提升"
+    },
+    {
+      "id": 32,
+      "name": "哲学",
+      "type": "专业",
+      "description": "人文社科专业，研究存在、知识和价值等根本问题，擅长深度思考和理论分析"
+    },
+    {
+      "id": 33,
+      "name": "计算机",
+      "type": "专业",
+      "description": "理工科专业，研究软件开发和信息系统技术，具备技术开发和系统设计能力"
+    },
+    {
+      "id": 34,
+      "name": "精英教育崇尚优胜劣汰",
+      "type": "家庭氛围",
+      "description": "周唯的家庭氛围，强调竞争、成就导向和高标准，注重结果和效率"
+    },
+    {
+      "id": 35,
+      "name": "严谨秩序容错率极低",
+      "type": "家庭氛围",
+      "description": "苏曼的家庭氛围，强调规则、精确和完美主义，注重细节和规范"
+    },
+    {
+      "id": 36,
+      "name": "书香门第",
+      "type": "家庭氛围",
+      "description": "文森特的家庭氛围，强调学术、知识和文化传承，注重教育和文化修养"
+    },
+    {
+      "id": 37,
+      "name": "单亲家庭",
+      "type": "家庭氛围",
+      "description": "小禾的家庭氛围，由母亲独自抚养成长，注重亲情和独立"
+    },
+    {
+      "id": 38,
+      "name": "高知家庭",
+      "type": "家庭氛围",
+      "description": "菲菲的家庭氛围，父母均为高学历知识分子，注重逻辑思辨和学术讨论"
+    },
+    {
+      "id": 39,
+      "name": "偏远地区支教教师家庭",
+      "type": "家庭氛围",
+      "description": "老程的家庭氛围，父母在偏远地区从事教育工作，注重教育和知识传播"
+    },
+    {
+      "id": 40,
+      "name": "退役军官家庭",
+      "type": "家庭氛围",
+      "description": "阿强的家庭氛围，父亲是退役军人强调纪律和效率，注重执行力和纪律性"
+    },
+    {
+      "id": 41,
+      "name": "上海里弄家庭",
+      "type": "家庭氛围",
+      "description": "老李的家庭氛围，上海本地居民，精明务实注重规则，擅长理财和规划"
+    },
+    {
+      "id": 42,
+      "name": "退休社区干部家庭",
+      "type": "家庭氛围",
+      "description": "芳姐的家庭氛围，父母曾是社区干部善于协调人际关系，擅长沟通和调解"
+    },
+    {
+      "id": 43,
+      "name": "先锋艺术家家庭",
+      "type": "家庭氛围",
+      "description": "阿K的家庭氛围，父母从事当代艺术创作，注重创意和自我表达"
+    },
+    {
+      "id": 44,
+      "name": "小生意家庭",
+      "type": "家庭氛围",
+      "description": "琳达的家庭氛围，父母从事小规模商业活动，注重实际利益和生存能力"
+    },
+    {
+      "id": 45,
+      "name": "创始人/CEO",
+      "type": "职业",
+      "description": "灵犀创意最高领导者，负责公司战略决策和整体运营，把握公司发展方向"
+    },
+    {
+      "id": 46,
+      "name": "运营总监/COO",
+      "type": "职业",
+      "description": "灵犀创意首席运营官，负责日常运营管理和流程优化，确保公司高效运转"
+    },
+    {
+      "id": 47,
+      "name": "创意总监",
+      "type": "职业",
+      "description": "灵犀创意视觉创意负责人，负责品牌视觉和创意方向，引领创意风格"
+    },
+    {
+      "id": 48,
+      "name": "资深文案",
+      "type": "职业",
+      "description": "灵犀创意文案撰写，负责品牌故事和内容创作，擅长文字表达"
+    },
+    {
+      "id": 49,
+      "name": "市场总监",
+      "type": "职业",
+      "description": "灵犀创意市场营销负责人，负责市场拓展和客户关系，推动业务增长"
+    },
+    {
+      "id": 50,
+      "name": "资深插画师",
+      "type": "职业",
+      "description": "灵犀创意插画创作，负责视觉内容产出，擅长图像表达"
+    },
+    {
+      "id": 51,
+      "name": "活动策划",
+      "type": "职业",
+      "description": "灵犀创意活动执行，负责各类活动和会议策划，确保活动顺利执行"
+    },
+    {
+      "id": 52,
+      "name": "技术负责人",
+      "type": "职业",
+      "description": "灵犀创意技术团队负责人，负责技术架构和开发管理，把握技术方向"
+    },
+    {
+      "id": 53,
+      "name": "后端开发",
+      "type": "职业",
+      "description": "灵犀创意后端工程师，负责服务器端开发和系统维护，保障技术实现"
+    },
+    {
+      "id": 54,
+      "name": "财务主管",
+      "type": "职业",
+      "description": "灵犀创意财务管理，负责财务核算和资金管理，掌握公司财务命脉"
+    },
+    {
+      "id": 55,
+      "name": "行政HR",
+      "type": "职业",
+      "description": "灵犀创意行政人事，负责员工关系和后勤支持，维护公司日常运转"
+    },
+    {
+      "id": 56,
+      "name": "气氛组",
+      "type": "职业",
+      "description": "灵犀创意氛围营造，负责活跃团队气氛，提升团队活力"
+    },
+    {
+      "id": 57,
+      "name": "公司无法在2027年前完成B轮融资",
+      "type": "压力与焦虑",
+      "description": "周唯的核心焦虑，担忧公司资金链断裂和发展受阻，涉及公司生存危机"
+    },
+    {
+      "id": 58,
+      "name": "团队纪律涣散导致交付质量失控",
+      "type": "压力与焦虑",
+      "description": "苏曼的核心焦虑，担心交付成果质量下降影响公司声誉，涉及运营质量风险"
+    },
+    {
+      "id": 59,
+      "name": "AI替代",
+      "type": "压力与焦虑",
+      "description": "小禾面临的职业焦虑，担心AI技术取代插画师工作，涉及职业生存危机"
+    },
+    {
+      "id": 60,
+      "name": "报销流程繁琐",
+      "type": "压力与焦虑",
+      "description": "琳达的工作压力源，繁琐的财务流程影响工作效率，涉及工作流程问题"
+    },
+    {
+      "id": 61,
+      "name": "灵犀创意",
+      "type": "地点",
+      "description": "公司名称，独立精品品牌工作室，创意行业从业者，聚焦品牌设计和创意内容"
+    },
+    {
+      "id": 62,
+      "name": "理想主义护卫舰",
+      "type": "关系事件",
+      "description": "非正式组织，成员文森特、小禾、阿K，纽带艺术追求，崇尚艺术灵性和创意表达"
+    },
+    {
+      "id": 63,
+      "name": "效率至上主义者",
+      "type": "关系事件",
+      "description": "非正式组织，成员周唯、琳达、阿强，纽带结果导向，注重效率和实际成果"
+    },
+    {
+      "id": 64,
+      "name": "信息枢纽站",
+      "type": "关系事件",
+      "description": "非正式组织，成员芳姐、乐乐、老李，纽带生活细节与办公室八卦，掌握公司信息流通"
+    },
+    {
+      "id": 65,
+      "name": "逻辑隔离区",
+      "type": "关系事件",
+      "description": "非正式组织，成员老程、苏曼，纽带规则，注重逻辑和制度"
+    },
+    {
+      "id": 66,
+      "name": "报销门",
+      "type": "关系事件",
+      "description": "琳达带客户蹦迪报销被老李驳回，周唯施压，苏曼威胁辞职，涉及财务制度和权力博弈"
+    },
+    {
+      "id": 67,
+      "name": "AI替代风波",
+      "type": "关系事件",
+      "description": "阿强开发自动出图脚本，小禾认为毁灭艺术灵性，文森特写三千字公开信，涉及技术与人文的冲突"
+    },
+    {
+      "id": 68,
+      "name": "职场霸凌",
+      "type": "心理状态/创伤",
+      "description": "小禾曾遭遇严重的职场霸凌，造成心理创伤，影响职业自信"
+    },
+    {
+      "id": 69,
+      "name": "周建国",
+      "type": "人物",
+      "description": "周唯的父亲，民营企业家，主营建材生意，精明强干，典型的工作狂，坚信弱肉强食的商场法则",
+      "expansionStatus": "done",
+      "expandedByAI": true,
+      "expandedRound": 1
+    },
+    {
+      "id": 70,
+      "name": "李慧敏",
+      "type": "人物",
+      "description": "周唯的母亲，某中级人民法院法官，专业严谨，追求公平正义，对周唯期望极高",
+      "expansionStatus": "done",
+      "expandedByAI": true,
+      "expandedRound": 1
+    },
+    {
+      "id": 71,
+      "name": "苏建国",
+      "type": "人物",
+      "description": "苏曼的父亲，航天高级工程师，参与过多个国家航天项目，性格内敛，沉默寡言但技术精湛",
+      "expansionStatus": "done",
+      "expandedByAI": true,
+      "expandedRound": 1
+    },
+    {
+      "id": 72,
+      "name": "陈美玲",
+      "type": "人物",
+      "description": "苏曼的母亲，资深会计师，在国企财务部门工作30年，做事一板一眼，追求精确",
+      "expansionStatus": "done",
+      "expandedByAI": true,
+      "expandedRound": 1
+    },
+    {
+      "id": 73,
+      "name": "林远山",
+      "type": "人物",
+      "description": "阿K的父亲，先锋艺术家，专攻装置艺术，在当代艺术圈小有名气，性格自由散漫",
+      "expansionStatus": "done",
+      "expandedByAI": true,
+      "expandedRound": 1
+    },
+    {
+      "id": 74,
+      "name": "沈丹青",
+      "type": "人物",
+      "description": "阿K的母亲，策展人，经营一家小型艺术画廊，擅长社交和艺术推广",
+      "expansionStatus": "done",
+      "expandedByAI": true,
+      "expandedRound": 1
+    },
+    {
+      "id": 75,
+      "name": "周德厚",
+      "type": "人物",
+      "description": "文森特的祖父，著名藏书家，收藏古籍上万册，学识渊博，退休大学教授",
+      "expansionStatus": "done",
+      "expandedByAI": true,
+      "expandedRound": 1
+    },
+    {
+      "id": 76,
+      "name": "方晓梅",
+      "type": "人物",
+      "description": "小禾的母亲，中学语文教师，独自抚养小禾长大，性格温柔但要强",
+      "expansionStatus": "done",
+      "expandedByAI": true,
+      "expandedRound": 1
+    },
+    {
+      "id": 77,
+      "name": "王教授",
+      "type": "人物",
+      "description": "菲菲的父亲，大学历史系教授，学术严谨，擅长辩论，对子女教育严格",
+      "expansionStatus": "done",
+      "expandedByAI": true,
+      "expandedRound": 1
+    },
+    {
+      "id": 78,
+      "name": "赵博士",
+      "type": "人物",
+      "description": "菲菲的母亲，研究所研究员，理性冷静，家庭聚会经常变成学术讨论",
+      "expansionStatus": "done",
+      "expandedByAI": true,
+      "expandedRound": 1
+    },
+    {
+      "id": 79,
+      "name": "程建国",
+      "type": "人物",
+      "description": "老程的父亲，偏远地区支教教师，扎根乡村教育30年，深受学生爱戴",
+      "expansionStatus": "done",
+      "expandedByAI": true,
+      "expandedRound": 1
+    },
+    {
+      "id": 80,
+      "name": "陈芳",
+      "type": "人物",
+      "description": "老程的母亲，偏远地区支教教师，与丈夫一起支教，擅长音乐和美术教育",
+      "expansionStatus": "done",
+      "expandedByAI": true,
+      "expandedRound": 1
+    },
+    {
+      "id": 81,
+      "name": "周建军",
+      "type": "人物",
+      "description": "阿强的父亲，退役军官，曾任某部队团长，转业后要求阿强严格自律",
+      "expansionStatus": "done",
+      "expandedByAI": true,
+      "expandedRound": 1
+    },
+    {
+      "id": 82,
+      "name": "李德清",
+      "type": "人物",
+      "description": "老李的父亲，上海里弄老居民，精明一辈子，退休前是工厂会计",
+      "expansionStatus": "done",
+      "expandedByAI": true,
+      "expandedRound": 1
+    },
+    {
+      "id": 83,
+      "name": "王桂芳",
+      "type": "人物",
+      "description": "老李的母亲，上海里弄老居民，退休纺织女工，持家能手",
+      "expansionStatus": "done",
+      "expandedByAI": true,
+      "expandedRound": 1
+    },
+    {
+      "id": 84,
+      "name": "刘建国",
+      "type": "人物",
+      "description": "芳姐的父亲，退休社区干部，在社区工作30年，擅长调解邻里纠纷",
+      "expansionStatus": "done",
+      "expandedByAI": true,
+      "expandedRound": 1
+    },
+    {
+      "id": 85,
+      "name": "马秀兰",
+      "type": "人物",
+      "description": "芳姐的母亲，退休社区干部，与丈夫同一社区退休，热心肠喜欢给人介绍对象",
+      "expansionStatus": "done",
+      "expandedByAI": true,
+      "expandedRound": 1
+    },
+    {
+      "id": 86,
+      "name": "张建国",
+      "type": "人物",
+      "description": "琳达的父亲，经营一家小超市，为人实在，精打细算",
+      "expansionStatus": "done",
+      "expandedByAI": true,
+      "expandedRound": 1
+    },
+    {
+      "id": 87,
+      "name": "李秀英",
+      "type": "人物",
+      "description": "琳达的母亲，帮助丈夫经营小超市，善于与顾客打交道",
+      "expansionStatus": "done",
+      "expandedByAI": true,
+      "expandedRound": 1
+    },
+    {
+      "id": 88,
+      "name": "投资方陈启明",
+      "type": "人物",
+      "description": "知名风险投资人，专注文创赛道，投过多个创意品牌项目，与周唯在行业峰会上结识，风格强势注重数据回报"
+    },
+    {
+      "id": 89,
+      "name": "创业导师张伟",
+      "type": "人物",
+      "description": "连续创业者，曾将公司做到行业前三后被收购，现为创业导师，与周唯有校友关系，经常给予战略建议"
+    },
+    {
+      "id": 90,
+      "name": "追求卓越",
+      "type": "价值观/观点",
+      "description": "周唯的核心价值观，坚信只有第一没有第二，要求团队成为行业标杆"
+    },
+    {
+      "id": 91,
+      "name": "极限帆船运动",
+      "type": "休闲方式",
+      "description": "周唯的休闲方式，喜爱挑战速度和风险的户外运动，象征其掌控欲和征服欲"
+    },
+    {
+      "id": 92,
+      "name": "行业资源整合",
+      "type": "核心需求",
+      "description": "周唯当前最渴望的商业资源，希望通过投资人拓展上下游合作机会"
+    },
+    {
+      "id": 93,
+      "name": "沈晓",
+      "type": "人物",
+      "description": "灵犀创意设计总监/创意负责人，INFJ，天秤座，中央美术学院视觉传达设计硕士，父亲是中学美术教师，母亲是家庭主妇。性格温暖包容，擅长洞察人心，是苏曼在公司内唯一能深度交流的同事，二人因对品质的极致追求形成默契。"
+    },
+    {
+      "id": 94,
+      "name": "完美主义倾向",
+      "type": "心理状态/创伤",
+      "description": "苏曼在高压家庭环境下形成的心理特质，过度追求完美，对细节苛求，容易因无法达到自我标准而产生自我否定，需学会适度放松。"
+    },
+    {
+      "id": 95,
+      "name": "逻辑思维",
+      "type": "价值观/观点",
+      "description": "苏曼坚信逻辑和秩序是解决问题的核心手段，推崇数据驱动决策，反对情绪化管理和随意性。"
+    },
+    {
+      "id": 96,
+      "name": "烘焙",
+      "type": "休闲方式",
+      "description": "苏曼的减压方式，通过亲手制作甜点的精确配比和工序获得掌控感和成就感，偏好需要精确计量的法式甜点。"
+    },
+    {
+      "id": 97,
+      "name": "射手座",
+      "type": "星座",
+      "description": "射手座，热爱自由、乐观开朗、追求精神层面的成长，与ENFP性格特质吻合"
+    },
+    {
+      "id": 98,
+      "name": "自由表达主义",
+      "type": "价值观/观点",
+      "description": "坚信创意应当超越商业框架，追求艺术的纯粹性和自我表达的自由"
+    },
+    {
+      "id": 99,
+      "name": "逃避Deadline",
+      "type": "压力与焦虑",
+      "description": "面对项目截止日期时会感到焦虑，倾向于用创意发想逃避实际执行工作"
+    },
+    {
+      "id": 100,
+      "name": "天秤座",
+      "type": "星座",
+      "description": "文森特的星座，和谐、追求平衡、富有艺术气质，擅长协调人际关系"
+    },
+    {
+      "id": 101,
+      "name": "存在主义",
+      "type": "价值观/观点",
+      "description": "文森特认同的存在主义思想，强调个人自由、选择和意义建构"
+    },
+    {
+      "id": 102,
+      "name": "意义感缺失",
+      "type": "压力与焦虑",
+      "description": "文森特在AI时代对创意工作意义的深层焦虑，担忧人文价值被技术洪流冲刷"
+    },
+    {
+      "id": 103,
+      "name": "精神导师身份认同",
+      "type": "核心需求",
+      "description": "文森特渴望通过深度交流帮助同事找到人生方向，实现自我价值"
+    },
+    {
+      "id": 104,
+      "name": "市场营销",
+      "type": "专业",
+      "description": "琳达的大学专业，学习市场调研、消费者行为、品牌推广等课程，为其市场总监职业打下基础"
+    },
+    {
+      "id": 105,
+      "name": "社交达人",
+      "type": "价值观/观点",
+      "description": "琳达认可社交即资源的观点，认为人脉广度决定事业宽度，善于经营和维护关系网络"
+    },
+    {
+      "id": 106,
+      "name": "职业晋升",
+      "type": "核心需求",
+      "description": "琳达渴望在灵犀创意获得更高的职位和更大的决策空间，期待从市场总监向VP或合伙人级别发展"
+    },
+    {
+      "id": 107,
+      "name": "艺术设计",
+      "type": "专业",
+      "description": "小禾的大学主修专业，系统学习绘画理论与设计技法。"
+    },
+    {
+      "id": 108,
+      "name": "看画展",
+      "type": "休闲方式",
+      "description": "小禾喜欢参观艺术展览，从大师作品中汲取灵感和情感共鸣。"
+    },
+    {
+      "id": 109,
+      "name": "创作认可",
+      "type": "核心需求",
+      "description": "小禾渴望自己的作品被认可，希望在艺术创作中找到自我价值感。"
+    },
+    {
+      "id": 110,
+      "name": "艺术灵性",
+      "type": "价值观/观点",
+      "description": "小禾坚信艺术创作需要灵魂和灵性，AI无法替代人类艺术家的情感表达。"
+    },
+    {
+      "id": 111,
+      "name": "林晨",
+      "type": "人物",
+      "description": "灵犀创意设计总监，菲菲的同事，ISTJ，工作严谨细致，擅长视觉设计和活动流程把控，与菲菲互补型搭档"
+    },
+    {
+      "id": 112,
+      "name": "逻辑推理",
+      "type": "其他",
+      "description": "菲菲通过解谜游戏和狼人杀等桌游锻炼逻辑推理能力"
+    },
+    {
+      "id": 113,
+      "name": "职业晋升",
+      "type": "其他",
+      "description": "菲菲希望在创意策划领域成为专家，获得更多项目主导机会"
+    },
+    {
+      "id": 114,
+      "name": "林朗",
+      "type": "人物",
+      "description": "灵犀创意高级工程师，老程的技术下属，崇拜老程的技术能力，经常请教系统架构问题"
+    },
+    {
+      "id": 115,
+      "name": "系统架构设计师",
+      "type": "职业",
+      "description": "负责设计大型系统的整体架构和技术框架，需要深厚的理论功底和全局思维"
+    },
+    {
+      "id": 116,
+      "name": "技术社群",
+      "type": "关系事件",
+      "description": "非正式技术交流圈子，老程偶尔参与，与业界同行讨论架构设计理念"
+    },
+    {
+      "id": 117,
+      "name": "被认可的技术大牛",
+      "type": "核心需求",
+      "description": "老程渴望在技术领域获得广泛认可，希望自己的技术见解能影响行业"
+    },
+    {
+      "id": 118,
+      "name": "小陈",
+      "type": "人物",
+      "description": "灵犀创意安全测试工程师，与阿强在AI替代风波中产生技术观点分歧，后渐理解彼此立场"
+    },
+    {
+      "id": 119,
+      "name": "老王",
+      "type": "人物",
+      "description": "阿强的健身伙伴，退伍军人，喜欢硬核科幻，常与阿强讨论军事技术和战术战略"
+    },
+    {
+      "id": 120,
+      "name": "天蝎座",
+      "type": "星座",
+      "description": "阿强的星座，腹黑高冷，外冷内热，执着于目标，与INTJ人格特质相辅相成"
+    },
+    {
+      "id": 121,
+      "name": "某985高校计算机科学硕士",
+      "type": "学历",
+      "description": "阿强的最高学历，毕业于国内顶尖高校计算机科学专业"
+    },
+    {
+      "id": 122,
+      "name": "追求技术极简主义",
+      "type": "价值观/观点",
+      "description": "阿强认为代码即艺术，崇尚最小化代码实现最大效率，反对过度工程化"
+    },
+    {
+      "id": 123,
+      "name": "技术成长瓶颈",
+      "type": "压力与焦虑",
+      "description": "阿强担忧在快速变化的技术领域被淘汰，渴望持续精进安全攻防技术"
+    },
+    {
+      "id": 124,
+      "name": "老钱",
+      "type": "人物",
+      "description": "灵犀创意会计，与老李共事3年，巨蟹座，为人温和友善，善于数据整理，是老李在财务部门的得力助手"
+    },
+    {
+      "id": 125,
+      "name": "促成佳缘",
+      "type": "核心需求",
+      "description": "帮助公司单身员工找到合适伴侣，享受牵线搭桥的成就感"
+    },
+    {
+      "id": 126,
+      "name": "广场舞",
+      "type": "休闲方式",
+      "description": "下班后跟随母亲马秀兰加入社区广场舞队，是放松身心和维持社交的方式"
+    },
+    {
+      "id": 127,
+      "name": "社交达人",
+      "type": "心理状态/创伤",
+      "description": "通过广泛社交获取能量，在与人互动中感受自我价值"
+    },
+    {
+      "id": 128,
+      "name": "热心红娘",
+      "type": "价值观/观点",
+      "description": "认为成人之美是积德行善，帮助年轻人组建家庭有成就感"
+    },
+    {
+      "id": 129,
+      "name": "被关注与认可",
+      "type": "核心需求",
+      "description": "ESFP型人格的核心心理需求，需要在社交场合中获得关注和认可来获得能量"
+    },
+    {
+      "id": 130,
+      "name": "冷场焦虑",
+      "type": "压力与焦虑",
+      "description": "作为气氛组成员，最担心在社交场合中出现冷场，无法调动氛围时的尴尬和焦虑感"
+    },
+    {
+      "id": 131,
+      "name": "社交派对",
+      "type": "休闲方式",
+      "description": "喜欢参加各类社交活动、派对、KTV等能够展示自我和与人互动的场合"
+    },
+    {
+      "id": 132,
+      "name": "周建国的商业伙伴张德明",
+      "type": "人物",
+      "description": "周建国20年的商业伙伴兼密友，同样经营建材生意，在生意场上多次合作，互相扶持"
+    },
+    {
+      "id": 133,
+      "name": "商场竞争压力",
+      "type": "压力与焦虑",
+      "description": "建材行业竞争激烈，周建国担心市场份额被蚕食，担忧企业持续发展"
+    },
+    {
+      "id": 134,
+      "name": "高尔夫球",
+      "type": "休闲方式",
+      "description": "周建国唯一的休闲方式，通过高尔夫球场谈生意、维系人脉，同时也是解压方式"
+    },
+    {
+      "id": 135,
+      "name": "张明华",
+      "type": "人物",
+      "description": "李慧敏的大学同学，现任同一家中级人民法院的副院长，刑庭法官，与李慧敏是多年同事兼密友"
+    },
+    {
+      "id": 136,
+      "name": "李慧敏",
+      "type": "MBTI类型",
+      "description": "INTJ"
+    },
+    {
+      "id": 137,
+      "name": "李慧敏",
+      "type": "星座",
+      "description": "天秤座"
+    },
+    {
+      "id": 138,
+      "name": "李慧敏",
+      "type": "学历",
+      "description": "法学博士"
+    },
+    {
+      "id": 139,
+      "name": "李慧敏",
+      "type": "专业",
+      "description": "法学"
+    },
+    {
+      "id": 140,
+      "name": "李慧敏",
+      "type": "家庭氛围",
+      "description": "严肃认真、重视责任与道德传承"
+    },
+    {
+      "id": 141,
+      "name": "李慧敏",
+      "type": "压力与焦虑",
+      "description": "担忧儿子周唯的公司能否顺利融资，以及周唯是否能在事业上取得成功"
+    },
+    {
+      "id": 142,
+      "name": "李慧敏",
+      "type": "核心需求",
+      "description": "希望周唯能够成为一个有责任感、有担当的人，在事业有成的同时坚守道德底线"
+    },
+    {
+      "id": 143,
+      "name": "李慧敏",
+      "type": "休闲方式",
+      "description": "阅读法律专著、练习书法、参加学术研讨会"
+    },
+    {
+      "id": 144,
+      "name": "张志远",
+      "type": "人物",
+      "description": "苏建国的同事，航天高级工程师，与苏建国共事超过15年，技术交流密切"
+    },
+    {
+      "id": 145,
+      "name": "内敛沉稳",
+      "type": "其他",
+      "description": "苏建国典型的性格特征表现为沉默寡言、内心丰富、不善表达但稳重可靠"
+    },
+    {
+      "id": 146,
+      "name": "技术追求完美",
+      "type": "价值观/观点",
+      "description": "苏建国坚持航天器数据必须精确到小数点后多位，对质量有近乎苛刻的要求"
+    },
+    {
+      "id": 147,
+      "name": "无人深空",
+      "type": "其他",
+      "description": "苏建国闲暇时喜欢阅读航天史料和观看太空纪录片，沉浸于人类探索宇宙的历史"
+    },
+    {
+      "id": 148,
+      "name": "王秀兰",
+      "type": "人物",
+      "description": "陈美玲的邻居，已退休中学教师，为人热情健谈，与陈美玲在小区活动中熟识，常交流养生心得"
+    },
+    {
+      "id": 149,
+      "name": "烹饪",
+      "type": "休闲方式",
+      "description": "陈美玲在周末喜欢研究菜谱，为家人准备丰盛的晚餐"
+    },
+    {
+      "id": 150,
+      "name": "自由艺术观",
+      "type": "价值观/观点",
+      "description": "认为艺术应打破边界，追求绝对自由表达，反对商业化对艺术的侵蚀"
+    },
+    {
+      "id": 151,
+      "name": "作品认可焦虑",
+      "type": "压力与焦虑",
+      "description": "担心作品被市场忽视，渴望获得艺术界主流认可，但又抗拒妥协"
+    },
+    {
+      "id": 152,
+      "name": "独立策展",
+      "type": "职业",
+      "description": "不隶属于任何机构，自主选择艺术项目进行策展的独立策展人"
+    },
+    {
+      "id": 153,
+      "name": "装置艺术",
+      "type": "职业",
+      "description": "以空间和物体组合为主要创作形式的当代艺术门类"
+    },
+    {
+      "id": 154,
+      "name": "赵文轩",
+      "type": "人物",
+      "description": "知名艺术评论家，与沈丹青在艺术展览活动中有过多次合作，彼此欣赏对方的艺术品味"
+    },
+    {
+      "id": 155,
+      "name": "沈丹青",
+      "type": "MBTI类型",
+      "description": "ENFJ"
+    },
+    {
+      "id": 156,
+      "name": "沈丹青",
+      "type": "星座",
+      "description": "天秤座"
+    },
+    {
+      "id": 157,
+      "name": "沈丹青",
+      "type": "职业",
+      "description": "策展人"
+    },
+    {
+      "id": 158,
+      "name": "沈丹青",
+      "type": "学历",
+      "description": "艺术管理硕士"
+    },
+    {
+      "id": 159,
+      "name": "沈丹青",
+      "type": "其他",
+      "description": "外向热情、善于沟通、追求美感与和谐"
+    },
+    {
+      "id": 160,
+      "name": "周德厚",
+      "type": "MBTI类型",
+      "description": "INTJ - 独立深思，理性博学，善于系统性思考"
+    },
+    {
+      "id": 161,
+      "name": "周德厚",
+      "type": "星座",
+      "description": "处女座 - 追求完美，注重细节，博览群书"
+    },
+    {
+      "id": 162,
+      "name": "周德厚",
+      "type": "职业",
+      "description": "退休大学教授/古籍文献学专家"
+    },
+    {
+      "id": 163,
+      "name": "周德厚",
+      "type": "其他",
+      "description": "博士"
+    },
+    {
+      "id": 164,
+      "name": "周德厚",
+      "type": "价值观/观点",
+      "description": "书籍是人类精神的最高载体，知识传承重于一切"
+    },
+    {
+      "id": 165,
+      "name": "周德厚",
+      "type": "核心需求",
+      "description": "希望将自己收藏的古籍整理成系统文献，传承给后世"
+    },
+    {
+      "id": 166,
+      "name": "周德厚",
+      "type": "休闲方式",
+      "description": "在书房品茗读古籍、研墨书法"
+    },
+    {
+      "id": 167,
+      "name": "周德厚",
+      "type": "心理状态/创伤",
+      "description": "晚年担忧收藏古籍的归宿问题"
+    },
+    {
+      "id": 168,
+      "name": "周德厚",
+      "type": "地点",
+      "description": "故居高邮巷老宅藏书阁"
+    },
+    {
+      "id": 169,
+      "name": "王淑芳",
+      "type": "人物",
+      "description": "方晓梅的同事，中学数学教师，与方晓梅同年级组共事多年"
+    },
+    {
+      "id": 170,
+      "name": "历史系教研室的晨光",
+      "type": "人物",
+      "description": "王教授的同事，大学历史系讲师，学术观点相近，常交流教学经验"
+    },
+    {
+      "id": 171,
+      "name": "李学者",
+      "type": "人物",
+      "description": "王教授的学术好友，历史学领域的同行，学术会议常一起参加"
+    },
+    {
+      "id": 172,
+      "name": "摩羯座",
+      "type": "星座",
+      "description": "传统星座，象征稳重务实、目标导向、传统保守"
+    },
+    {
+      "id": 173,
+      "name": "历史学博士",
+      "type": "学历",
+      "description": "最高学历为历史学博士学位"
+    },
+    {
+      "id": 174,
+      "name": "严谨较真",
+      "type": "其他",
+      "description": "学术严谨，对细节要求高，辩论时寸步不让"
+    },
+    {
+      "id": 175,
+      "name": "传承史学",
+      "type": "其他",
+      "description": "认为历史学是民族文化传承的重要载体，有责任培养下一代史学人才"
+    },
+    {
+      "id": 176,
+      "name": "学术焦虑",
+      "type": "其他",
+      "description": "担心学术研究成果不足以传承史学、对学生培养质量要求高带来的压力"
+    },
+    {
+      "id": 177,
+      "name": "图书馆查阅",
+      "type": "休闲方式",
+      "description": "喜欢在图书馆查阅古籍史料，作为学术研究外的放松方式"
+    },
+    {
+      "id": 178,
+      "name": "学生成才",
+      "type": "核心需求",
+      "description": "渴望自己的学生能够成才，将史学知识传承下去"
+    },
+    {
+      "id": 179,
+      "name": "李研究员",
+      "type": "人物",
+      "description": "赵博士的同事，研究所副研究员，与赵博士研究方向相近，经常合作项目"
+    },
+    {
+      "id": 180,
+      "name": "物理学博士",
+      "type": "学历",
+      "description": "理论物理学博士学位"
+    },
+    {
+      "id": 181,
+      "name": "程小兰",
+      "type": "人物",
+      "description": "程建国的女儿，老程的妹妹，在县城中学担任数学教师，受父亲影响投身教育事业"
+    },
+    {
+      "id": 182,
+      "name": "张村长",
+      "type": "人物",
+      "description": "程建国所在村庄的村主任，与程建国共事多年，支持乡村教育发展"
+    },
+    {
+      "id": 183,
+      "name": "小兰",
+      "type": "人物",
+      "description": "陈芳在支教学校的学生，父母双亡由祖母抚养，性格内向但热爱绘画，陈芳发现其美术天赋后重点培养"
+    },
+    {
+      "id": 184,
+      "name": "孙老师",
+      "type": "人物",
+      "description": "与陈芳夫妇一起支教的同事，主攻语文教学，与陈芳在教学上互相配合多年"
+    },
+    {
+      "id": 185,
+      "name": "王秀英",
+      "type": "人物",
+      "description": "周建军的妻子，阿强的母亲，退休中学教师，性格温和，擅长调和父子关系"
+    },
+    {
+      "id": 186,
+      "name": "陈大海",
+      "type": "人物",
+      "description": "周建军的老战友，退役后转任某安保公司技术顾问，与周建军保持密切联系"
+    },
+    {
+      "id": 187,
+      "name": "老周",
+      "type": "人物",
+      "description": "李德清的棋友，同一里弄的老邻居，退休前是公交车司机，擅长象棋，常在里弄口与李德清对弈"
+    },
+    {
+      "id": 188,
+      "name": "张主任",
+      "type": "人物",
+      "description": "里弄居委会主任，与李德清相熟，常邀请李德清参加里弄活动"
+    },
+    {
+      "id": 189,
+      "name": "张秀英",
+      "type": "人物",
+      "description": "王桂芳的邻居兼密友，上海里弄老居民，退休后常与王桂芳一起散步、聊天、织毛衣"
+    },
+    {
+      "id": 190,
+      "name": "李淑珍",
+      "type": "人物",
+      "description": "王桂芳的姐姐，早年嫁到江苏，姐妹俩逢年过节有走动"
+    },
+    {
+      "id": 191,
+      "name": "王桂芳",
+      "type": "MBTI类型",
+      "description": "ISFJ型 - 忠诚、细心、富有责任感、善于照顾家人"
+    },
+    {
+      "id": 192,
+      "name": "王桂芳",
+      "type": "星座",
+      "description": "金牛座"
+    },
+    {
+      "id": 193,
+      "name": "王桂芳",
+      "type": "学历",
+      "description": "小学肄业（因文革辍学）"
+    },
+    {
+      "id": 194,
+      "name": "王桂芳",
+      "type": "家庭氛围",
+      "description": "勤俭节约、精打细算、重视家庭和睦"
+    },
+    {
+      "id": 195,
+      "name": "王桂芳",
+      "type": "价值观/观点",
+      "description": "传统观念强，认为子女婚姻是人生大事，崇尚勤俭持家"
+    },
+    {
+      "id": 196,
+      "name": "王桂芳",
+      "type": "压力与焦虑",
+      "description": "担心儿子老李的婚事，操心家庭经济开支"
+    },
+    {
+      "id": 197,
+      "name": "王桂芳",
+      "type": "休闲方式",
+      "description": "织毛衣、逛里弄菜市场、与邻居聊天、听沪剧"
+    },
+    {
+      "id": 198,
+      "name": "王桂芳",
+      "type": "核心需求",
+      "description": "希望子女婚姻大事早日有着落，渴望家庭团圆"
+    },
+    {
+      "id": 199,
+      "name": "王淑芬",
+      "type": "人物",
+      "description": "马秀兰在社区工作时的同事，退休后仍保持联系，两人经常一起参加社区活动"
+    },
+    {
+      "id": 200,
+      "name": "张翠花",
+      "type": "人物",
+      "description": "马秀兰的牌友，退休后常在一起打麻将，属于熟人关系"
+    },
+    {
+      "id": 201,
+      "name": "李秀兰",
+      "type": "人物",
+      "description": "李秀英的姐姐，住在同一社区，偶尔来超市帮忙"
+    },
+    {
+      "id": 202,
+      "name": "王翠花",
+      "type": "人物",
+      "description": "李秀英的邻居，退休教师，常来超市买菜聊天"
+    },
+    {
+      "id": 203,
+      "name": "务实开朗",
+      "type": "其他",
+      "description": "李秀英性格务实开朗，善于与人交流"
+    },
+    {
+      "id": 204,
+      "name": "超市经营者",
+      "type": "职业",
+      "description": "李秀英帮助丈夫经营小超市"
+    }
+  ],
+  "relations": [
+    {
+      "source": 1,
+      "target": 13
+    },
+    {
+      "source": 1,
+      "target": 25
+    },
+    {
+      "source": 1,
+      "target": 27
+    },
+    {
+      "source": 1,
+      "target": 45
+    },
+    {
+      "source": 1,
+      "target": 34
+    },
+    {
+      "source": 1,
+      "target": 57
+    },
+    {
+      "source": 1,
+      "target": 61
+    },
+    {
+      "source": 1,
+      "target": 69
+    },
+    {
+      "source": 1,
+      "target": 70
+    },
+    {
+      "source": 1,
+      "target": 2
+    },
+    {
+      "source": 1,
+      "target": 3
+    },
+    {
+      "source": 1,
+      "target": 4
+    },
+    {
+      "source": 1,
+      "target": 5
+    },
+    {
+      "source": 1,
+      "target": 6
+    },
+    {
+      "source": 1,
+      "target": 7
+    },
+    {
+      "source": 1,
+      "target": 8
+    },
+    {
+      "source": 1,
+      "target": 9
+    },
+    {
+      "source": 1,
+      "target": 10
+    },
+    {
+      "source": 1,
+      "target": 11
+    },
+    {
+      "source": 1,
+      "target": 12
+    },
+    {
+      "source": 1,
+      "target": 62
+    },
+    {
+      "source": 1,
+      "target": 63
+    },
+    {
+      "source": 1,
+      "target": 66
+    },
+    {
+      "source": 2,
+      "target": 14
+    },
+    {
+      "source": 2,
+      "target": 26
+    },
+    {
+      "source": 2,
+      "target": 28
+    },
+    {
+      "source": 2,
+      "target": 31
+    },
+    {
+      "source": 2,
+      "target": 46
+    },
+    {
+      "source": 2,
+      "target": 35
+    },
+    {
+      "source": 2,
+      "target": 58
+    },
+    {
+      "source": 2,
+      "target": 61
+    },
+    {
+      "source": 2,
+      "target": 71
+    },
+    {
+      "source": 2,
+      "target": 72
+    },
+    {
+      "source": 2,
+      "target": 65
+    },
+    {
+      "source": 2,
+      "target": 66
+    },
+    {
+      "source": 3,
+      "target": 15
+    },
+    {
+      "source": 3,
+      "target": 47
+    },
+    {
+      "source": 3,
+      "target": 43
+    },
+    {
+      "source": 3,
+      "target": 61
+    },
+    {
+      "source": 3,
+      "target": 73
+    },
+    {
+      "source": 3,
+      "target": 74
+    },
+    {
+      "source": 3,
+      "target": 62
+    },
+    {
+      "source": 4,
+      "target": 16
+    },
+    {
+      "source": 4,
+      "target": 48
+    },
+    {
+      "source": 4,
+      "target": 29
+    },
+    {
+      "source": 4,
+      "target": 32
+    },
+    {
+      "source": 4,
+      "target": 36
+    },
+    {
+      "source": 4,
+      "target": 61
+    },
+    {
+      "source": 4,
+      "target": 75
+    },
+    {
+      "source": 4,
+      "target": 62
+    },
+    {
+      "source": 4,
+      "target": 67
+    },
+    {
+      "source": 5,
+      "target": 17
+    },
+    {
+      "source": 5,
+      "target": 49
+    },
+    {
+      "source": 5,
+      "target": 44
+    },
+    {
+      "source": 5,
+      "target": 60
+    },
+    {
+      "source": 5,
+      "target": 61
+    },
+    {
+      "source": 5,
+      "target": 86
+    },
+    {
+      "source": 5,
+      "target": 87
+    },
+    {
+      "source": 5,
+      "target": 63
+    },
+    {
+      "source": 5,
+      "target": 66
+    },
+    {
+      "source": 6,
+      "target": 18
+    },
+    {
+      "source": 6,
+      "target": 50
+    },
+    {
+      "source": 6,
+      "target": 37
+    },
+    {
+      "source": 6,
+      "target": 59
+    },
+    {
+      "source": 6,
+      "target": 61
+    },
+    {
+      "source": 6,
+      "target": 68
+    },
+    {
+      "source": 6,
+      "target": 76
+    },
+    {
+      "source": 6,
+      "target": 62
+    },
+    {
+      "source": 6,
+      "target": 67
+    },
+    {
+      "source": 7,
+      "target": 19
+    },
+    {
+      "source": 7,
+      "target": 51
+    },
+    {
+      "source": 7,
+      "target": 38
+    },
+    {
+      "source": 7,
+      "target": 61
+    },
+    {
+      "source": 7,
+      "target": 77
+    },
+    {
+      "source": 7,
+      "target": 78
+    },
+    {
+      "source": 8,
+      "target": 20
+    },
+    {
+      "source": 8,
+      "target": 52
+    },
+    {
+      "source": 8,
+      "target": 30
+    },
+    {
+      "source": 8,
+      "target": 33
+    },
+    {
+      "source": 8,
+      "target": 39
+    },
+    {
+      "source": 8,
+      "target": 61
+    },
+    {
+      "source": 8,
+      "target": 79
+    },
+    {
+      "source": 8,
+      "target": 80
+    },
+    {
+      "source": 8,
+      "target": 65
+    },
+    {
+      "source": 9,
+      "target": 21
+    },
+    {
+      "source": 9,
+      "target": 53
+    },
+    {
+      "source": 9,
+      "target": 40
+    },
+    {
+      "source": 9,
+      "target": 61
+    },
+    {
+      "source": 9,
+      "target": 81
+    },
+    {
+      "source": 9,
+      "target": 63
+    },
+    {
+      "source": 9,
+      "target": 67
+    },
+    {
+      "source": 10,
+      "target": 22
+    },
+    {
+      "source": 10,
+      "target": 54
+    },
+    {
+      "source": 10,
+      "target": 41
+    },
+    {
+      "source": 10,
+      "target": 61
+    },
+    {
+      "source": 10,
+      "target": 82
+    },
+    {
+      "source": 10,
+      "target": 83
+    },
+    {
+      "source": 10,
+      "target": 64
+    },
+    {
+      "source": 10,
+      "target": 66
+    },
+    {
+      "source": 11,
+      "target": 23
+    },
+    {
+      "source": 11,
+      "target": 55
+    },
+    {
+      "source": 11,
+      "target": 42
+    },
+    {
+      "source": 11,
+      "target": 61
+    },
+    {
+      "source": 11,
+      "target": 84
+    },
+    {
+      "source": 11,
+      "target": 85
+    },
+    {
+      "source": 11,
+      "target": 64
+    },
+    {
+      "source": 12,
+      "target": 24
+    },
+    {
+      "source": 12,
+      "target": 56
+    },
+    {
+      "source": 12,
+      "target": 61
+    },
+    {
+      "source": 12,
+      "target": 64
+    },
+    {
+      "source": 13,
+      "target": 1
+    },
+    {
+      "source": 14,
+      "target": 2
+    },
+    {
+      "source": 15,
+      "target": 3
+    },
+    {
+      "source": 16,
+      "target": 4
+    },
+    {
+      "source": 17,
+      "target": 5
+    },
+    {
+      "source": 18,
+      "target": 6
+    },
+    {
+      "source": 19,
+      "target": 7
+    },
+    {
+      "source": 20,
+      "target": 8
+    },
+    {
+      "source": 21,
+      "target": 9
+    },
+    {
+      "source": 22,
+      "target": 10
+    },
+    {
+      "source": 23,
+      "target": 11
+    },
+    {
+      "source": 24,
+      "target": 12
+    },
+    {
+      "source": 25,
+      "target": 1
+    },
+    {
+      "source": 26,
+      "target": 2
+    },
+    {
+      "source": 27,
+      "target": 1
+    },
+    {
+      "source": 28,
+      "target": 2
+    },
+    {
+      "source": 29,
+      "target": 4
+    },
+    {
+      "source": 30,
+      "target": 8
+    },
+    {
+      "source": 31,
+      "target": 2
+    },
+    {
+      "source": 32,
+      "target": 4
+    },
+    {
+      "source": 33,
+      "target": 8
+    },
+    {
+      "source": 34,
+      "target": 1
+    },
+    {
+      "source": 35,
+      "target": 2
+    },
+    {
+      "source": 36,
+      "target": 4
+    },
+    {
+      "source": 37,
+      "target": 6
+    },
+    {
+      "source": 38,
+      "target": 7
+    },
+    {
+      "source": 39,
+      "target": 8
+    },
+    {
+      "source": 40,
+      "target": 9
+    },
+    {
+      "source": 41,
+      "target": 10
+    },
+    {
+      "source": 42,
+      "target": 11
+    },
+    {
+      "source": 43,
+      "target": 3
+    },
+    {
+      "source": 44,
+      "target": 5
+    },
+    {
+      "source": 45,
+      "target": 1
+    },
+    {
+      "source": 46,
+      "target": 2
+    },
+    {
+      "source": 47,
+      "target": 3
+    },
+    {
+      "source": 48,
+      "target": 4
+    },
+    {
+      "source": 49,
+      "target": 5
+    },
+    {
+      "source": 50,
+      "target": 6
+    },
+    {
+      "source": 51,
+      "target": 7
+    },
+    {
+      "source": 52,
+      "target": 8
+    },
+    {
+      "source": 53,
+      "target": 9
+    },
+    {
+      "source": 54,
+      "target": 10
+    },
+    {
+      "source": 55,
+      "target": 11
+    },
+    {
+      "source": 56,
+      "target": 12
+    },
+    {
+      "source": 57,
+      "target": 1
+    },
+    {
+      "source": 58,
+      "target": 2
+    },
+    {
+      "source": 59,
+      "target": 6
+    },
+    {
+      "source": 60,
+      "target": 5
+    },
+    {
+      "source": 61,
+      "target": 1
+    },
+    {
+      "source": 61,
+      "target": 2
+    },
+    {
+      "source": 61,
+      "target": 3
+    },
+    {
+      "source": 61,
+      "target": 4
+    },
+    {
+      "source": 61,
+      "target": 5
+    },
+    {
+      "source": 61,
+      "target": 6
+    },
+    {
+      "source": 61,
+      "target": 7
+    },
+    {
+      "source": 61,
+      "target": 8
+    },
+    {
+      "source": 61,
+      "target": 9
+    },
+    {
+      "source": 61,
+      "target": 10
+    },
+    {
+      "source": 61,
+      "target": 11
+    },
+    {
+      "source": 61,
+      "target": 12
+    },
+    {
+      "source": 62,
+      "target": 4
+    },
+    {
+      "source": 62,
+      "target": 6
+    },
+    {
+      "source": 62,
+      "target": 3
+    },
+    {
+      "source": 63,
+      "target": 1
+    },
+    {
+      "source": 63,
+      "target": 5
+    },
+    {
+      "source": 63,
+      "target": 9
+    },
+    {
+      "source": 64,
+      "target": 10
+    },
+    {
+      "source": 64,
+      "target": 11
+    },
+    {
+      "source": 64,
+      "target": 12
+    },
+    {
+      "source": 65,
+      "target": 8
+    },
+    {
+      "source": 65,
+      "target": 2
+    },
+    {
+      "source": 66,
+      "target": 5
+    },
+    {
+      "source": 66,
+      "target": 10
+    },
+    {
+      "source": 67,
+      "target": 9
+    },
+    {
+      "source": 67,
+      "target": 6
+    },
+    {
+      "source": 67,
+      "target": 4
+    },
+    {
+      "source": 68,
+      "target": 6
+    },
+    {
+      "source": 1,
+      "target": 88,
+      "relation": "熟人"
+    },
+    {
+      "source": 1,
+      "target": 89,
+      "relation": "密友"
+    },
+    {
+      "source": 1,
+      "target": 90,
+      "relation": "持有观点"
+    },
+    {
+      "source": 1,
+      "target": 91,
+      "relation": "爱好是"
+    },
+    {
+      "source": 1,
+      "target": 92,
+      "relation": "渴求"
+    },
+    {
+      "source": 2,
+      "target": 93,
+      "relation": "密友"
+    },
+    {
+      "source": 2,
+      "target": 94,
+      "relation": "曾遭遇"
+    },
+    {
+      "source": 2,
+      "target": 95,
+      "relation": "持有观点"
+    },
+    {
+      "source": 2,
+      "target": 96,
+      "relation": "爱好是"
+    },
+    {
+      "source": 6,
+      "target": 4,
+      "relation": "朋友"
+    },
+    {
+      "source": 3,
+      "target": 4,
+      "relation": "朋友"
+    },
+    {
+      "source": 4,
+      "target": 100,
+      "relation": "属于星座"
+    },
+    {
+      "source": 4,
+      "target": 101,
+      "relation": "持有观点"
+    },
+    {
+      "source": 4,
+      "target": 102,
+      "relation": "面临压力"
+    },
+    {
+      "source": 4,
+      "target": 103,
+      "relation": "渴求"
+    },
+    {
+      "source": 5,
+      "target": 2,
+      "relation": "熟人"
+    },
+    {
+      "source": 5,
+      "target": 97,
+      "relation": "属于星座"
+    },
+    {
+      "source": 5,
+      "target": 104,
+      "relation": "主修专业"
+    },
+    {
+      "source": 5,
+      "target": 28,
+      "relation": "最高学历为"
+    },
+    {
+      "source": 5,
+      "target": 105,
+      "relation": "持有观点"
+    },
+    {
+      "source": 5,
+      "target": 106,
+      "relation": "渴求"
+    },
+    {
+      "source": 3,
+      "target": 6,
+      "relation": "密友"
+    },
+    {
+      "source": 6,
+      "target": 3,
+      "relation": "密友"
+    },
+    {
+      "source": 6,
+      "target": 100,
+      "relation": "属于星座"
+    },
+    {
+      "source": 6,
+      "target": 107,
+      "relation": "主修专业"
+    },
+    {
+      "source": 6,
+      "target": 108,
+      "relation": "爱好是"
+    },
+    {
+      "source": 6,
+      "target": 109,
+      "relation": "渴求"
+    },
+    {
+      "source": 6,
+      "target": 110,
+      "relation": "持有观点"
+    },
+    {
+      "source": 7,
+      "target": 111,
+      "relation": "同事"
+    },
+    {
+      "source": 7,
+      "target": 97,
+      "relation": "属于星座"
+    },
+    {
+      "source": 7,
+      "target": 112,
+      "relation": "爱好是"
+    },
+    {
+      "source": 7,
+      "target": 106,
+      "relation": "渴求"
+    },
+    {
+      "source": 8,
+      "target": 114,
+      "relation": "同事"
+    },
+    {
+      "source": 8,
+      "target": 115,
+      "relation": "职业为"
+    },
+    {
+      "source": 8,
+      "target": 116,
+      "relation": "参与事件"
+    },
+    {
+      "source": 8,
+      "target": 117,
+      "relation": "渴求"
+    },
+    {
+      "source": 118,
+      "target": 9,
+      "relation": "同事"
+    },
+    {
+      "source": 119,
+      "target": 9,
+      "relation": "熟人"
+    },
+    {
+      "source": 9,
+      "target": 120,
+      "relation": "属于星座"
+    },
+    {
+      "source": 9,
+      "target": 121,
+      "relation": "最高学历为"
+    },
+    {
+      "source": 9,
+      "target": 122,
+      "relation": "持有观点"
+    },
+    {
+      "source": 9,
+      "target": 123,
+      "relation": "面临压力"
+    },
+    {
+      "source": 11,
+      "target": 12,
+      "relation": "密友"
+    },
+    {
+      "source": 11,
+      "target": 125,
+      "relation": "渴求"
+    },
+    {
+      "source": 11,
+      "target": 126,
+      "relation": "爱好是"
+    },
+    {
+      "source": 11,
+      "target": 127,
+      "relation": "性格为"
+    },
+    {
+      "source": 11,
+      "target": 128,
+      "relation": "持有观点"
+    },
+    {
+      "source": 12,
+      "target": 10,
+      "relation": "同事"
+    },
+    {
+      "source": 12,
+      "target": 10,
+      "relation": "熟人"
+    },
+    {
+      "source": 12,
+      "target": 1,
+      "relation": "同事"
+    },
+    {
+      "source": 12,
+      "target": 25,
+      "relation": "属于星座"
+    },
+    {
+      "source": 12,
+      "target": 129,
+      "relation": "渴求"
+    },
+    {
+      "source": 12,
+      "target": 130,
+      "relation": "面临压力"
+    },
+    {
+      "source": 12,
+      "target": 131,
+      "relation": "爱好是"
+    },
+    {
+      "source": 69,
+      "target": 70,
+      "relation": "夫妻"
+    },
+    {
+      "source": 69,
+      "target": 132,
+      "relation": "密友"
+    },
+    {
+      "source": 69,
+      "target": 25,
+      "relation": "属于星座"
+    },
+    {
+      "source": 69,
+      "target": 21,
+      "relation": "性格为"
+    },
+    {
+      "source": 69,
+      "target": 133,
+      "relation": "面临压力"
+    },
+    {
+      "source": 69,
+      "target": 134,
+      "relation": "爱好是"
+    },
+    {
+      "source": 71,
+      "target": 72,
+      "relation": "夫妻"
+    },
+    {
+      "source": 71,
+      "target": 144,
+      "relation": "同事"
+    },
+    {
+      "source": 71,
+      "target": 145,
+      "relation": "性格为"
+    },
+    {
+      "source": 71,
+      "target": 146,
+      "relation": "持有观点"
+    },
+    {
+      "source": 71,
+      "target": 147,
+      "relation": "爱好是"
+    },
+    {
+      "source": 72,
+      "target": 148,
+      "relation": "熟人"
+    },
+    {
+      "source": 72,
+      "target": 26,
+      "relation": "属于星座"
+    },
+    {
+      "source": 72,
+      "target": 149,
+      "relation": "爱好是"
+    },
+    {
+      "source": 73,
+      "target": 74,
+      "relation": "夫妻"
+    },
+    {
+      "source": 73,
+      "target": 18,
+      "relation": "性格为"
+    },
+    {
+      "source": 73,
+      "target": 100,
+      "relation": "属于星座"
+    },
+    {
+      "source": 73,
+      "target": 150,
+      "relation": "持有观点"
+    },
+    {
+      "source": 73,
+      "target": 151,
+      "relation": "面临压力"
+    },
+    {
+      "source": 73,
+      "target": 153,
+      "relation": "职业为"
+    },
+    {
+      "source": 74,
+      "target": 154,
+      "relation": "熟人"
+    },
+    {
+      "source": 74,
+      "target": 155,
+      "relation": "性格为"
+    },
+    {
+      "source": 74,
+      "target": 157,
+      "relation": "职业为"
+    },
+    {
+      "source": 74,
+      "target": 158,
+      "relation": "最高学历为"
+    },
+    {
+      "source": 74,
+      "target": 74,
+      "relation": "性格为"
+    },
+    {
+      "source": 74,
+      "target": 74,
+      "relation": "渴求"
+    },
+    {
+      "source": 74,
+      "target": 74,
+      "relation": "爱好是"
+    },
+    {
+      "source": 74,
+      "target": 74,
+      "relation": "面临压力"
+    },
+    {
+      "source": 75,
+      "target": 21,
+      "relation": "性格为"
+    },
+    {
+      "source": 75,
+      "target": 26,
+      "relation": "属于星座"
+    },
+    {
+      "source": 76,
+      "target": 169,
+      "relation": "同事"
+    },
+    {
+      "source": 78,
+      "target": 77,
+      "relation": "夫妻"
+    },
+    {
+      "source": 78,
+      "target": 179,
+      "relation": "同事"
+    },
+    {
+      "source": 78,
+      "target": 26,
+      "relation": "属于星座"
+    },
+    {
+      "source": 78,
+      "target": 180,
+      "relation": "最高学历为"
+    },
+    {
+      "source": 79,
+      "target": 80,
+      "relation": "夫妻"
+    },
+    {
+      "source": 79,
+      "target": 181,
+      "relation": "父子"
+    },
+    {
+      "source": 79,
+      "target": 182,
+      "relation": "熟人"
+    },
+    {
+      "source": 79,
+      "target": 21,
+      "relation": "性格为"
+    },
+    {
+      "source": 79,
+      "target": 97,
+      "relation": "属于星座"
+    },
+    {
+      "source": 82,
+      "target": 83,
+      "relation": "夫妻"
+    },
+    {
+      "source": 82,
+      "target": 187,
+      "relation": "密友"
+    },
+    {
+      "source": 82,
+      "target": 188,
+      "relation": "熟人"
+    },
+    {
+      "source": 82,
+      "target": 10,
+      "relation": "父子"
+    },
+    {
+      "source": 83,
+      "target": 189,
+      "relation": "密友"
+    },
+    {
+      "source": 83,
+      "target": 190,
+      "relation": "姐妹"
+    },
+    {
+      "source": 83,
+      "target": 82,
+      "relation": "夫妻"
+    },
+    {
+      "source": 83,
+      "target": 10,
+      "relation": "母子"
+    },
+    {
+      "source": 191,
+      "target": 83,
+      "relation": "性格为"
+    },
+    {
+      "source": 192,
+      "target": 83,
+      "relation": "属于星座"
+    },
+    {
+      "source": 193,
+      "target": 83,
+      "relation": "最高学历为"
+    },
+    {
+      "source": 194,
+      "target": 83,
+      "relation": "成长于"
+    },
+    {
+      "source": 195,
+      "target": 83,
+      "relation": "持有观点"
+    },
+    {
+      "source": 196,
+      "target": 83,
+      "relation": "面临压力"
+    },
+    {
+      "source": 197,
+      "target": 83,
+      "relation": "爱好是"
+    },
+    {
+      "source": 198,
+      "target": 83,
+      "relation": "渴求"
+    },
+    {
+      "source": 84,
+      "target": 85,
+      "relation": "夫妻"
+    },
+    {
+      "source": 84,
+      "target": 187,
+      "relation": "密友"
+    },
+    {
+      "source": 84,
+      "target": 21,
+      "relation": "性格为"
+    },
+    {
+      "source": 85,
+      "target": 199,
+      "relation": "同事"
+    },
+    {
+      "source": 85,
+      "target": 200,
+      "relation": "熟人"
+    },
+    {
+      "source": 85,
+      "target": 87,
+      "relation": "朋友"
+    },
+    {
+      "source": 85,
+      "target": 22,
+      "relation": "性格为"
+    },
+    {
+      "source": 85,
+      "target": 100,
+      "relation": "属于星座"
+    },
+    {
+      "source": 87,
+      "target": 86,
+      "relation": "夫妻"
+    },
+    {
+      "source": 87,
+      "target": 201,
+      "relation": "姐妹"
+    },
+    {
+      "source": 87,
+      "target": 202,
+      "relation": "熟人"
+    },
+    {
+      "source": 87,
+      "target": 203,
+      "relation": "性格为"
+    },
+    {
+      "source": 87,
+      "target": 100,
+      "relation": "属于星座"
+    },
+    {
+      "source": 87,
+      "target": 204,
+      "relation": "职业为"
+    }
+  ],
+  "stats": {
+    "entities": 204,
+    "relations": 311,
+    "schemas": 35
+  }
+}

@@ -63,6 +63,282 @@
     }
   }
 
+  class MemoryEntry {
+    constructor({
+      eventId,
+      timestamp = Date.now(),
+      content = '',
+      emotion = '',
+      importance = 0,
+      participants = [],
+      topic = '',
+      round = 1
+    }) {
+      this.id = `mem_${timestamp}_${Math.random().toString(16).slice(2, 6)}`;
+      this.eventId = eventId;
+      this.timestamp = timestamp;
+      this.content = content;
+      this.emotion = emotion;
+      this.importance = importance;
+      this.participants = participants;
+      this.topic = topic;
+      this.round = round;
+      this.accessCount = 0;
+      this.lastAccessed = timestamp;
+    }
+
+    access() {
+      this.accessCount += 1;
+      this.lastAccessed = Date.now();
+    }
+  }
+
+  class MemorySummary {
+    constructor({
+      topic = '',
+      startRound = 1,
+      endRound = 1,
+      content = '',
+      relatedPeople = [],
+      emotionTrend = '',
+      importance = 0
+    }) {
+      this.id = `summary_${Date.now()}_${Math.random().toString(16).slice(2, 6)}`;
+      this.topic = topic;
+      this.startRound = startRound;
+      this.endRound = endRound;
+      this.content = content;
+      this.relatedPeople = relatedPeople;
+      this.emotionTrend = emotionTrend;
+      this.importance = importance;
+      this.createdAt = Date.now();
+    }
+  }
+
+  class AgentMemory {
+    constructor(agentId, options = {}) {
+      this.agentId = agentId;
+      this.shortTermLimit = options.shortTermLimit || 8;
+      this.midTermTrigger = options.midTermTrigger || 5;
+      this.longTermInterval = options.longTermInterval || 10;
+
+      this.shortTerm = [];
+      this.midTerm = [];
+      this.longTerm = [];
+      this.personalityEvolution = [];
+
+      this._topicIndex = new Map();
+      this._personIndex = new Map();
+    }
+
+    addEvent(event, round) {
+      const importance = this._calculateImportance(event);
+      const entry = new MemoryEntry({
+        eventId: event.id,
+        timestamp: event.timestamp,
+        content: event.action?.external_behavior || '',
+        emotion: this._extractEmotion(event),
+        importance,
+        participants: this._extractParticipants(event),
+        topic: event.payload?.goal || event.payload?.topic || '一般社交',
+        round
+      });
+
+      this.shortTerm.push(entry);
+      this._indexEntry(entry);
+
+      if (this.shortTerm.length > this.shortTermLimit) {
+        const oldEntry = this.shortTerm.shift();
+        this._promoteToMidTerm(oldEntry);
+      }
+
+      return entry;
+    }
+
+    _calculateImportance(event) {
+      let score = 50;
+      if (event.payload?.goal) score += 15;
+      if (event.payload?.kgUpdates?.person_updates?.length > 0) score += 20;
+      if (event.channel?.chat_scope === ChannelMode.GROUP) score += 10;
+      if (event.receiver_ids?.length > 1) score += 10;
+      return Math.min(100, score);
+    }
+
+    _extractEmotion(event) {
+      const text = `${event.action?.internal_thought || ''} ${event.action?.external_behavior || ''}`;
+      const positive = /开心|高兴|满意|喜欢|感谢|赞|好/.test(text);
+      const negative = /生气|失望|担心|讨厌|愤怒|难过|差/.test(text);
+      if (positive && !negative) return 'positive';
+      if (negative && !positive) return 'negative';
+      return 'neutral';
+    }
+
+    _extractParticipants(event) {
+      const participants = new Set([event.initiator_id]);
+      (event.receiver_ids || []).forEach(id => participants.add(id));
+      return [...participants];
+    }
+
+    _indexEntry(entry) {
+      if (entry.topic) {
+        if (!this._topicIndex.has(entry.topic)) {
+          this._topicIndex.set(entry.topic, []);
+        }
+        this._topicIndex.get(entry.topic).push(entry);
+      }
+      entry.participants.forEach(personId => {
+        if (!this._personIndex.has(personId)) {
+          this._personIndex.set(personId, []);
+        }
+        this._personIndex.get(personId).push(entry);
+      });
+    }
+
+    _promoteToMidTerm(entry) {
+      if (entry.importance >= 60) {
+        this.midTerm.push(entry);
+      }
+    }
+
+    generateSummary(round, llm) {
+      if (this.shortTerm.length < this.midTermTrigger) return null;
+
+      const topics = this._aggregateByTopic();
+      const summaries = [];
+
+      for (const [topic, entries] of topics) {
+        if (entries.length >= 3) {
+          const content = entries.map(e => e.content).join('\n');
+          const relatedPeople = [...new Set(entries.flatMap(e => e.participants))];
+          const emotions = entries.map(e => e.emotion);
+          const emotionTrend = this._analyzeEmotionTrend(emotions);
+
+          const summary = new MemorySummary({
+            topic,
+            startRound: entries[0].round,
+            endRound: entries[entries.length - 1].round,
+            content: `关于"${topic}"的${entries.length}次互动：${content.substring(0, 200)}...`,
+            relatedPeople,
+            emotionTrend,
+            importance: Math.max(...entries.map(e => e.importance))
+          });
+
+          summaries.push(summary);
+        }
+      }
+
+      this.midTerm = [...this.midTerm, ...summaries];
+      return summaries;
+    }
+
+    _aggregateByTopic() {
+      const topics = new Map();
+      for (const entry of this.shortTerm) {
+        if (!topics.has(entry.topic)) {
+          topics.set(entry.topic, []);
+        }
+        topics.get(entry.topic).push(entry);
+      }
+      return topics;
+    }
+
+    _analyzeEmotionTrend(emotions) {
+      const counts = { positive: 0, negative: 0, neutral: 0 };
+      emotions.forEach(e => counts[e]++);
+      if (counts.positive > counts.negative) return 'positive';
+      if (counts.negative > counts.positive) return 'negative';
+      return 'neutral';
+    }
+
+    recordPersonalityEvolution(round, changes) {
+      this.personalityEvolution.push({
+        round,
+        timestamp: Date.now(),
+        changes
+      });
+    }
+
+    getRelevantMemories(context = {}) {
+      const { topic, personId, round, limit = 5 } = context;
+      const relevant = [];
+
+      if (topic && this._topicIndex.has(topic)) {
+        relevant.push(...this._topicIndex.get(topic).slice(-limit));
+      }
+
+      if (personId && this._personIndex.has(personId)) {
+        relevant.push(...this._personIndex.get(personId).slice(-limit));
+      }
+
+      relevant.push(...this.shortTerm.slice(-limit));
+
+      const unique = [...new Map(relevant.map(e => [e.id, e])).values()];
+      unique.sort((a, b) => b.importance - a.importance);
+
+      return unique.slice(0, limit);
+    }
+
+    getMemoryForPrompt(context = {}) {
+      const memories = this.getRelevantMemories(context);
+      memories.forEach(m => m.access());
+
+      const shortTermMem = this.shortTerm.slice(-this.shortTermLimit);
+      const midTermMem = this.midTerm.slice(-3);
+
+      return {
+        shortTerm: shortTermMem.map(m => `[R${m.round}] ${m.content}`).join('\n'),
+        midTerm: midTermMem.map(s => `[R${s.startRound}-${s.endRound}] ${s.topic}: ${s.content}`).join('\n'),
+        longTerm: this.personalityEvolution.slice(-3).map(p =>
+          `[R${p.round}] 人格演变: ${JSON.stringify(p.changes)}`
+        ).join('\n')
+      };
+    }
+
+    exportToGraphUpdates() {
+      const updates = {
+        new_nodes: [],
+        new_links: [],
+        person_updates: []
+      };
+
+      for (const summary of this.midTerm) {
+        const summaryNodeId = `memory_${this.agentId}_${summary.id}`;
+        updates.new_nodes.push({
+          name: `记忆：${summary.topic}`,
+          type: '记忆片段',
+          description: summary.content
+        });
+
+        updates.new_links.push({
+          source: this.agentId,
+          target: summaryNodeId,
+          relation: '记得'
+        });
+
+        for (const personId of summary.relatedPeople) {
+          if (personId !== this.agentId) {
+            updates.new_links.push({
+              source: summaryNodeId,
+              target: personId,
+              relation: '关于'
+            });
+          }
+        }
+      }
+
+      if (this.personalityEvolution.length > 0) {
+        const latest = this.personalityEvolution[this.personalityEvolution.length - 1];
+        updates.person_updates.push({
+          person_id: this.agentId,
+          new_values: latest.changes.newValues || [],
+          changed_values: latest.changes.changedValues || []
+        });
+      }
+
+      return updates;
+    }
+  }
+
   class InteractionEvent {
     constructor({
       channel,
@@ -93,12 +369,13 @@
   }
 
   class Agent {
-    constructor({ profile, state = new AgentState() }) {
+    constructor({ profile, state = new AgentState(), memoryOptions = {} }) {
       this.profile = profile;
       this.state = state;
       this.currentLocation = 'unknown';
       this.groups = new Set();
       this._handlers = [];
+      this.memory = new AgentMemory(profile.id, memoryOptions);
     }
 
     setLocation(location) {
@@ -113,34 +390,36 @@
       this._handlers.push(handler);
     }
 
-    async receive(event, meta) {
+    async receive(event, meta, round = 1) {
+      this.memory.addEvent(event, round);
       for (const handler of this._handlers) {
         await handler(event, meta, this);
       }
     }
 
     async handleEvent(event, context = {}) {
-      const { llm, indexes, graphSummary = '{}', memoryWindow = 8 } = context;
+      const { llm, indexes, graphSummary = '{}', round = 1 } = context;
       if (event.initiator_id === this.profile.id || typeof llm !== 'function') return null;
 
       const initiator = indexes?.nodeById?.get(normalizeId(event.initiator_id));
       const receiverNames = (event.receiver_ids || [])
         .map((id) => indexes?.nodeById?.get(normalizeId(id))?.name || id)
         .join('、') || '群组成员';
-      const memory = (context.eventHistory || [])
-        .slice(-Math.max(1, memoryWindow))
-        .map((item) => {
-          const speaker = indexes?.nodeById?.get(normalizeId(item.initiator_id))?.name || item.initiator_id;
-          return `${speaker}: ${item.action?.external_behavior || ''}`;
-        })
-        .join('\n');
+
+      this.memory.addEvent(event, round);
+      const memoryLayers = this.memory.getMemoryForPrompt({
+        personId: event.initiator_id,
+        topic: event.payload?.goal
+      });
 
       const prompt = `你正在参与一个多智能体社会推演。你当前扮演角色【${this.profile.name}】。
 角色设定：${this.profile.personaText}
 人格特征：${this.profile.personality || '未提供'}；MBTI：${this.profile.mbti || '未知'}；核心需求：${this.profile.metadata?.coreNeed || '未提供'}。
 
 【全局背景摘要】\n${graphSummary}
-【近期记忆】\n${memory || '暂无'}
+【短期记忆-最近经历】\n${memoryLayers.shortTerm || '暂无'}
+【中期记忆-重要事件摘要】\n${memoryLayers.midTerm || '暂无'}
+【长期记忆-人格演变】\n${memoryLayers.longTerm || '暂无'}
 【当前收到事件】
 发起人：${initiator?.name || event.initiator_id}
 接收方：${receiverNames}
@@ -149,7 +428,7 @@
 
 请判断你是否需要回应。若决定无视或保持沉默，请将reply_behavior严格填为"无"（不要留空或其他词）。
 严格返回JSON对象，不要使用markdown代码块：
-{"internal_thought":"...","reply_behavior":"...","channel_specific":"...","kg_updates":{"new_nodes":[],"new_links":[],"person_updates":[]}}`;
+{"internal_thought":"...","reply_behavior":"...","channel_specific":"...","memory_updates":{"emotion":"...","impression":"..."},"kg_updates":{"new_nodes":[],"new_links":[],"person_updates":[]}}`;
 
       const parsed = safeParseJsonObject(await llm(prompt));
       const replyText = parsed?.reply_behavior?.trim();
@@ -183,37 +462,32 @@
         llm,
         indexes,
         graphSummary = '{}',
-        memoryWindow = 8,
         round = 1,
         env
       } = context;
 
       if (typeof llm !== 'function') return null;
 
-      const memory = (context.eventHistory || [])
-        .slice(-Math.max(1, memoryWindow))
-        .map((item) => {
-          const speaker = indexes?.nodeById?.get(normalizeId(item.initiator_id))?.name || item.initiator_id;
-          return `${speaker}: ${item.action?.external_behavior || ''}`;
-        })
-        .join('\n');
+      const memoryLayers = this.memory.getMemoryForPrompt();
 
       const people = (indexes?.nodes || [])
         .filter((n) => n.type === '人物' && normalizeId(n.id) !== normalizeId(this.profile.id))
         .map((n) => `${n.id}:${n.name}`)
         .join('；');
 
-      const prompt = `你是多智能体社会推演中的角色【${this.profile.name}】。当前采用“时间片自主社交”，请你在第${round}轮判断是否主动行动。
+      const prompt = `你是多智能体社会推演中的角色【${this.profile.name}】。当前采用"时间片自主社交"，请你在第${round}轮判断是否主动行动。
 角色设定：${this.profile.personaText}
 人格特征：${this.profile.personality || '未提供'}；MBTI：${this.profile.mbti || '未知'}；核心需求：${this.profile.metadata?.coreNeed || '未提供'}。
 
 【全局背景摘要】\n${graphSummary}
-【近期记忆】\n${memory || '暂无'}
+【短期记忆-最近经历】\n${memoryLayers.shortTerm || '暂无'}
+【中期记忆-重要事件摘要】\n${memoryLayers.midTerm || '暂无'}
+【长期记忆-人格演变】\n${memoryLayers.longTerm || '暂无'}
 【可互动对象(人物ID:姓名)】\n${people || '暂无'}
 
-请返回你的“意图”，强调目标驱动，而不是动作脚本。若本轮不行动，should_act=false。
+请基于你的记忆层次，判断是否需要主动行动。若本轮不行动，should_act=false。
 严格返回JSON对象，不要使用markdown代码块：
-{"should_act":true,"goal":"...","target_ids":["..."],"target_names":["..."],"chat_scope":"private|group","online_offline":"online|offline","channel_specific":"...","content":"...","internal_thought":"...","priority_hint":0,"location":"...","kg_updates":{"new_nodes":[],"new_links":[],"person_updates":[]}}`;
+{"should_act":true,"goal":"...","target_ids":["..."],"target_names":["..."],"chat_scope":"private|group","online_offline":"online|offline","channel_specific":"...","content":"...","internal_thought":"...","priority_hint":0,"location":"...","memory_context":"引用哪层记忆驱动此决策","kg_updates":{"new_nodes":[],"new_links":[],"person_updates":[]}}`;
 
       const parsed = safeParseJsonObject(await llm(prompt));
       if (!parsed || parsed.should_act === false) return null;
@@ -283,14 +557,14 @@
       this.groups.get(groupId).add(agentId);
     }
 
-    async publish(event) {
+    async publish(event, round = 1) {
       this.eventHistory.push(event);
       const recipients = this.route(event);
       await Promise.all(
         [...recipients].map(async (agentId) => {
           const target = this.agents.get(agentId);
           if (!target) return;
-          await target.receive(event, { visibleTo: recipients });
+          await target.receive(event, { visibleTo: recipients }, round);
         })
       );
       return recipients;
@@ -330,6 +604,11 @@
       this.eventBus = eventBus;
       this.logger = logger;
       this.agents = new Map();
+      this.currentRound = 1;
+    }
+
+    setRound(round) {
+      this.currentRound = round;
     }
 
     registerAgent(agent) {
@@ -339,7 +618,7 @@
     }
 
     async emit(event) {
-      const recipients = await this.eventBus.publish(event);
+      const recipients = await this.eventBus.publish(event, this.currentRound);
       this.logger(`[Env] 事件已发布 channel={${event.channel.online_offline}/${event.channel.chat_scope}/${event.channel.specific}} from=${event.initiator_id} to=[${[...recipients].join(', ')}]`);
       return recipients;
     }
@@ -573,36 +852,47 @@
     });
   }
 
-  function updateGraphWithRoundFeedback(graphData, round, roundEvents = [], indexes) {
+  function updateGraphWithRoundFeedback(graphData, round, roundEvents = [], indexes, agents = new Map()) {
     const nextGraph = {
       nodes: [...(graphData.nodes || [])],
       links: [...(graphData.links || [])]
     };
+
     roundEvents.forEach((event, idx) => {
       if (!event) return;
-      const hasKgUpdates = Boolean(event.payload?.kgUpdates);
-      if (hasKgUpdates) {
-        const eventNodeId = `sim_round_${round}_event_${idx + 1}`;
-        const eventNodeName = event.payload?.eventName
-          || `第${round}轮事件${idx + 1}`;
-        const detail = `${event.action?.external_behavior || ''}；渠道=${event.channel.online_offline}/${event.channel.chat_scope}/${event.channel.specific}`;
-        upsertNode(nextGraph, {
-          id: eventNodeId,
-          name: eventNodeName,
-          type: '关系事件',
-          description: detail
-        });
-        upsertLink(nextGraph, { source: event.initiator_id, target: eventNodeId, relation: '发起事件' });
-        (event.receiver_ids || []).forEach((rid) => {
-          upsertLink(nextGraph, { source: rid, target: eventNodeId, relation: '参与事件' });
-        });
-        if (event.location && event.location !== 'unknown') {
-          const locationNode = ensureNodeByName(nextGraph, event.location, '地点', '推演触发地点');
-          upsertLink(nextGraph, { source: eventNodeId, target: locationNode.id, relation: '发生地' });
-        }
+
+      const eventNodeId = `sim_round_${round}_event_${idx + 1}`;
+      const eventNodeName = event.payload?.eventName || `第${round}轮事件${idx + 1}`;
+      const detail = `${event.action?.external_behavior || ''}；渠道=${event.channel.online_offline}/${event.channel.chat_scope}/${event.channel.specific}`;
+
+      upsertNode(nextGraph, {
+        id: eventNodeId,
+        name: eventNodeName,
+        type: '关系事件',
+        description: detail
+      });
+      upsertLink(nextGraph, { source: event.initiator_id, target: eventNodeId, relation: '发起事件' });
+      (event.receiver_ids || []).forEach((rid) => {
+        upsertLink(nextGraph, { source: rid, target: eventNodeId, relation: '参与事件' });
+      });
+      if (event.location && event.location !== 'unknown') {
+        const locationNode = ensureNodeByName(nextGraph, event.location, '地点', '推演触发地点');
+        upsertLink(nextGraph, { source: eventNodeId, target: locationNode.id, relation: '发生地' });
+      }
+
+      if (event.payload?.kgUpdates) {
         applyKnowledgeGraphUpdates(nextGraph, event.payload.kgUpdates, indexes);
       }
     });
+
+    agents.forEach((agent) => {
+      if (agent.memory) {
+        agent.memory.generateSummary(round);
+        const memoryUpdates = agent.memory.exportToGraphUpdates();
+        applyKnowledgeGraphUpdates(nextGraph, memoryUpdates, indexes);
+      }
+    });
+
     return nextGraph;
   }
 
@@ -790,6 +1080,7 @@
     let mutableGraph = graphData;
     logger(`[Demo] 推演任务开始：共 ${rounds} 轮，每轮最多 ${maxEventsPerRound} 个事件。`);
     for (let round = 1; round <= rounds; round += 1) {
+      env.setRound(round);
       const currentIndexes = createGraphIndexes(mutableGraph);
       const currentPeople = currentIndexes.nodes.filter((n) => n.type === '人物');
       const graphSummary = buildGraphSummary(currentIndexes);
@@ -834,7 +1125,7 @@
         await env.emit(event);
         roundEvents.push(event);
       }
-      mutableGraph = updateGraphWithRoundFeedback(mutableGraph, round, roundEvents, currentIndexes);
+      mutableGraph = updateGraphWithRoundFeedback(mutableGraph, round, roundEvents, currentIndexes, env.agents);
       logger(`[Demo] ===== 第 ${round} 轮完成：执行 ${roundEvents.length} 个事件，累计 ${bus.eventHistory.length} 条历史 =====`);
       if (onRoundComplete) {
         await onRoundComplete({
@@ -856,6 +1147,9 @@
     AgentState,
     Action,
     InteractionEvent,
+    MemoryEntry,
+    MemorySummary,
+    AgentMemory,
     Agent,
     EventBus,
     SimulationEnvironment,
