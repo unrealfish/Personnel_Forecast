@@ -125,6 +125,7 @@
       this.shortTermLimit = options.shortTermLimit || 8;
       this.midTermTrigger = options.midTermTrigger || 5;
       this.longTermInterval = options.longTermInterval || 10;
+      this.memorySnapshotLimit = options.memorySnapshotLimit || 3;
 
       this.shortTerm = [];
       this.midTerm = [];
@@ -316,47 +317,45 @@
         person_updates: []
       };
 
-      const existingMemoryNodes = new Set();
+      const exportedMemoryNodes = new Set();
+      const normalizedMemories = this._collectMemoryNodesForGraph();
 
-      for (const summary of this.midTerm) {
+      for (const summary of normalizedMemories) {
         const summaryNodeId = `memory_${this.agentId}_${summary.id}`;
-        
-        // 检查节点是否已存在
-        if (!existingMemoryNodes.has(summaryNodeId)) {
-          updates.new_nodes.push({
-            id: summaryNodeId,
-            name: `记忆：${summary.topic}`,
-            type: '记忆片段',
-            description: summary.content,
-            importance: summary.importance,
-            emotion: summary.emotionTrend
-          });
-          existingMemoryNodes.add(summaryNodeId);
+        if (exportedMemoryNodes.has(summaryNodeId)) continue;
 
-          updates.new_links.push({
-            source: this.agentId,
-            target: summaryNodeId,
-            relation: '记得'
-          });
+        updates.new_nodes.push({
+          id: summaryNodeId,
+          name: `记忆：${summary.topic}`,
+          type: '记忆片段',
+          description: summary.content,
+          importance: summary.importance,
+          emotion: summary.emotionTrend
+        });
+        exportedMemoryNodes.add(summaryNodeId);
 
-          for (const personId of summary.relatedPeople) {
-            if (personId !== this.agentId) {
-              updates.new_links.push({
-                source: summaryNodeId,
-                target: personId,
-                relation: '关于'
-              });
-            }
-          }
+        updates.new_links.push({
+          source: this.agentId,
+          target: summaryNodeId,
+          relation: '记得'
+        });
 
-          // 添加地点关联
-          if (summary.location && summary.location !== 'unknown') {
+        for (const personId of summary.relatedPeople) {
+          if (personId !== this.agentId) {
             updates.new_links.push({
               source: summaryNodeId,
-              target: summary.location,
-              relation: '发生在'
+              target: personId,
+              relation: '关于'
             });
           }
+        }
+
+        if (summary.location && summary.location !== 'unknown') {
+          updates.new_links.push({
+            source: summaryNodeId,
+            target: summary.location,
+            relation: '发生在'
+          });
         }
       }
 
@@ -370,6 +369,64 @@
       }
 
       return updates;
+    }
+
+    _collectMemoryNodesForGraph() {
+      const normalized = [];
+      const pushNormalized = (item) => {
+        const normalizedItem = this._normalizeMemoryItem(item);
+        if (normalizedItem) normalized.push(normalizedItem);
+      };
+
+      this.midTerm.forEach(pushNormalized);
+
+      const recentSnapshots = this.shortTerm
+        .slice(-this.memorySnapshotLimit)
+        .filter((entry) => entry.importance >= 55);
+      recentSnapshots.forEach((entry) => {
+        pushNormalized({
+          id: `snapshot_${entry.id}`,
+          topic: entry.topic || '近期互动',
+          content: entry.content,
+          relatedPeople: entry.participants,
+          emotionTrend: entry.emotion,
+          importance: entry.importance,
+          location: entry.location,
+          startRound: entry.round,
+          endRound: entry.round
+        });
+      });
+
+      const deduped = new Map();
+      normalized.forEach((item) => {
+        const key = `${item.topic}::${item.content}`;
+        if (!deduped.has(key) || (deduped.get(key).importance || 0) < (item.importance || 0)) {
+          deduped.set(key, item);
+        }
+      });
+
+      return [...deduped.values()];
+    }
+
+    _normalizeMemoryItem(item) {
+      if (!item) return null;
+      const participants = Array.isArray(item.relatedPeople)
+        ? item.relatedPeople
+        : (Array.isArray(item.participants) ? item.participants : []);
+      const emotion = item.emotionTrend || item.emotion || 'neutral';
+      const content = item.content || '';
+      if (!content.trim()) return null;
+      return {
+        id: item.id || `memory_item_${Date.now()}_${Math.random().toString(16).slice(2, 6)}`,
+        topic: item.topic || '一般社交',
+        content,
+        relatedPeople: participants,
+        emotionTrend: emotion,
+        importance: Number(item.importance) || 50,
+        location: item.location || 'unknown',
+        startRound: item.startRound || item.round || 1,
+        endRound: item.endRound || item.round || 1
+      };
     }
   }
 
@@ -920,7 +977,8 @@
     });
   }
 
-  function updateGraphWithRoundFeedback(graphData, round, roundEvents = [], indexes, agents = new Map()) {
+  function updateGraphWithRoundFeedback(graphData, round, roundEvents = [], indexes, agents = new Map(), options = {}) {
+    const eventOffset = Math.max(0, Number(options.eventOffset) || 0);
     const nextGraph = {
       nodes: [...(graphData.nodes || [])],
       links: [...(graphData.links || [])]
@@ -929,14 +987,16 @@
     roundEvents.forEach((event, idx) => {
       if (!event) return;
 
-      const eventNodeId = `sim_round_${round}_event_${idx + 1}`;
-      const eventNodeName = event.payload?.eventName || `第${round}轮事件${idx + 1}`;
-      const detail = `${event.action?.external_behavior || ''}；渠道=${event.channel.online_offline}/${event.channel.chat_scope}/${event.channel.specific}`;
+      const eventNodeId = `sim_round_${round}_event_${eventOffset + idx + 1}`;
+      const eventCategory = inferSimulationEventCategory(event);
+      const eventNodeName = event.payload?.eventName || `${eventCategory}-第${round}轮-${idx + 1}`;
+      const detail = `${event.action?.external_behavior || ''}；类型=${eventCategory}；渠道=${event.channel.online_offline}/${event.channel.chat_scope}/${event.channel.specific}`;
 
       upsertNode(nextGraph, {
         id: eventNodeId,
         name: eventNodeName,
         type: '关系事件',
+        event_category: eventCategory,
         description: detail
       });
       upsertLink(nextGraph, { source: event.initiator_id, target: eventNodeId, relation: '发起事件' });
@@ -962,6 +1022,14 @@
     });
 
     return nextGraph;
+  }
+
+  function inferSimulationEventCategory(event = {}) {
+    if (event.payload?.generatedBy === 'agent_intent') return '主动社交';
+    if (event.payload?.generatedBy === 'agent_reaction') return '回应互动';
+    if (event.payload?.injectedEvent) return '用户注入';
+    if (event.payload?.eventName) return '情境事件';
+    return '一般互动';
   }
 
   function safeParseJsonObject(rawText) {
@@ -1088,6 +1156,7 @@
     const rounds = Math.max(1, Number(options.rounds) || 1);
     const customEvents = Array.isArray(options.customEvents) ? options.customEvents : [];
     const onRoundComplete = typeof options.onRoundComplete === 'function' ? options.onRoundComplete : null;
+    const onEventComplete = typeof options.onEventComplete === 'function' ? options.onEventComplete : null;
     const maxEventsPerRound = Math.max(1, Number(options.maxEventsPerRound) || 64);
     const memoryWindow = Math.max(1, Number(options.memoryWindow) || 8);
 
@@ -1157,6 +1226,7 @@
 
       logger(`[Demo] ===== 第 ${round} 轮开始 =====`);
       const roundEvents = [];
+      let roundEventCounter = 0;
 
       const intentCandidates = [];
       for (const agent of env.agents.values()) {
@@ -1185,6 +1255,18 @@
         logger(`[Demo] 第${round}轮执行意图: ${item.agentName} | 优先级=${item.priority.toFixed(1)} | 目标=${item.goal || '未显式声明'}`);
         await env.emit(item.event);
         roundEvents.push(item.event);
+        roundEventCounter += 1;
+        mutableGraph = updateGraphWithRoundFeedback(mutableGraph, round, [item.event], currentIndexes, env.agents, {
+          eventOffset: roundEventCounter - 1
+        });
+        if (onEventComplete) {
+          await onEventComplete({
+            round,
+            eventIndex: roundEventCounter,
+            event: item.event,
+            graphData: mutableGraph
+          });
+        }
       }
 
       for (const event of injectedEvents) {
@@ -1192,8 +1274,19 @@
         await enrichActionWithLLM(event, graphSummary, llm, currentIndexes);
         await env.emit(event);
         roundEvents.push(event);
+        roundEventCounter += 1;
+        mutableGraph = updateGraphWithRoundFeedback(mutableGraph, round, [event], currentIndexes, env.agents, {
+          eventOffset: roundEventCounter - 1
+        });
+        if (onEventComplete) {
+          await onEventComplete({
+            round,
+            eventIndex: roundEventCounter,
+            event,
+            graphData: mutableGraph
+          });
+        }
       }
-      mutableGraph = updateGraphWithRoundFeedback(mutableGraph, round, roundEvents, currentIndexes, env.agents);
       logger(`[Demo] ===== 第 ${round} 轮完成：执行 ${roundEvents.length} 个事件，累计 ${bus.eventHistory.length} 条历史 =====`);
       if (onRoundComplete) {
         await onRoundComplete({

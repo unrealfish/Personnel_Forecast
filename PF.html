@@ -204,6 +204,7 @@
     <input type="file" id="import-file" class="hidden-input" accept=".json">
     <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
     <script src="graph_schema.js"></script>
+    <script src="llm_provider.js"></script>
     <script>
         const state = {
             graphData: { nodes: [], links: [] },
@@ -242,6 +243,15 @@
             roundRecords: [],
             currentSimRun: null,
             agentActivity: {},
+            agentActivityTTL: 5000,
+            agentActivityCleanupTimer: null,
+            llmConfig: {
+                provider: 'minimax',
+                model: 'MiniMax-M2.5',
+                baseUrl: 'https://api.minimaxi.com',
+                apiKey: '',
+                temperature: 0.3
+            },
             ui: {
                 rightPanelCollapsed: false,
                 peoplePanelCollapsed: false,
@@ -285,21 +295,55 @@ ${relationPart}`;
         let showType = true, simulation = null;
         const GROUP_KEYS = ['人物', '人物属性', '资产/财务', '休闲方式', '内心', '关系事件', '地点', '其他'];
         const groupVisibility = GROUP_KEYS.reduce((acc, group) => { acc[group] = true; return acc; }, {});
-        const API_KEY = 'sk-cp-A9z1o0km6DeGKloUzgRyIbeiWR40fji97-1Fz4jGS_McfYsojJiq6K0eJ_B_W6eCDKxBNNEpzBmTW4yKr8tMxJWIFmQ7Ss8xNJm31lEFH3PcmY5H_1dqG0U';
-        const API_URL = 'https://api.minimaxi.com/v1/text/chatcompletion_v2';
+        function getMergedLlmConfig() {
+            const provider = state.llmConfig?.provider || 'minimax';
+            const defaults = window.UnifiedLLMClient?.getDefaultConfig
+                ? window.UnifiedLLMClient.getDefaultConfig(provider)
+                : {};
+            return {
+                ...defaults,
+                ...(state.llmConfig || {}),
+                provider
+            };
+        }
         
         async function callLLMWithSystem(systemPrompt, prompt, temperature = 0.3) {
             try {
-                const res = await fetch(API_URL, {
-                    method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${API_KEY}` },
-                    body: JSON.stringify({ model: 'MiniMax-M2.5', messages: [
-                        { role: 'system', content: systemPrompt },
-                        { role: 'user', content: prompt }
-                    ], temperature })
+                if (!window.UnifiedLLMClient?.chat) {
+                    addLog('LLM 客户端未加载（llm_provider.js）', 'error');
+                    return null;
+                }
+                const cfg = getMergedLlmConfig();
+                return await window.UnifiedLLMClient.chat({
+                    ...cfg,
+                    systemPrompt,
+                    prompt,
+                    temperature
                 });
-                const data = await res.json();
-                return data.choices?.[0]?.message?.content || null;
-            } catch (e) { console.error('API Error:', e); return null; }
+            } catch (e) {
+                console.error('API Error:', e);
+                addLog(`LLM调用失败: ${e.message || '未知错误'}`, 'error');
+                return null;
+            }
+        }
+
+        function onLlmProviderChange(provider) {
+            const defaults = window.UnifiedLLMClient?.getDefaultConfig
+                ? window.UnifiedLLMClient.getDefaultConfig(provider)
+                : { provider };
+            state.llmConfig = {
+                ...defaults,
+                apiKey: state.llmConfig.apiKey || ''
+            };
+            render();
+        }
+
+        function onLlmConfigInput(key, value) {
+            const normalizedValue = key === 'temperature' ? Number(value) : value;
+            state.llmConfig = {
+                ...(state.llmConfig || {}),
+                [key]: normalizedValue
+            };
         }
 
         async function callLLM(prompt) {
@@ -615,18 +659,48 @@ ${relationPart}`;
         }
 
         function refreshAgentActivityByRound(roundEvents = []) {
-            const nextActivity = {};
             (roundEvents || []).forEach((evt) => {
-                const id = String(evt?.initiator_id || '');
-                if (!id) return;
-                const signal = inferAgentSignalFromEvent(evt);
-                if (signal === 'action') {
-                    nextActivity[id] = 'action';
-                    return;
-                }
-                if (!nextActivity[id]) nextActivity[id] = signal;
+                markAgentActivity(evt);
             });
+            cleanupExpiredAgentActivity();
+        }
+
+        function cleanupExpiredAgentActivity() {
+            const now = Date.now();
+            const nextActivity = {};
+            Object.entries(state.agentActivity || {}).forEach(([id, info]) => {
+                if (!info || !info.expiresAt || info.expiresAt <= now) return;
+                nextActivity[id] = info;
+            });
+            const changed = Object.keys(nextActivity).length !== Object.keys(state.agentActivity || {}).length;
             state.agentActivity = nextActivity;
+            if (changed) render();
+        }
+
+        function scheduleAgentActivityCleanup() {
+            if (state.agentActivityCleanupTimer) clearTimeout(state.agentActivityCleanupTimer);
+            state.agentActivityCleanupTimer = setTimeout(() => {
+                cleanupExpiredAgentActivity();
+            }, Math.max(200, Number(state.agentActivityTTL) || 5000));
+        }
+
+        function markAgentActivity(evt) {
+            const id = String(evt?.initiator_id || '');
+            if (!id) return;
+            const signal = inferAgentSignalFromEvent(evt);
+            state.agentActivity[id] = {
+                signal,
+                expiresAt: Date.now() + Math.max(500, Number(state.agentActivityTTL) || 5000)
+            };
+            scheduleAgentActivityCleanup();
+        }
+
+        function getAgentSignal(agentId) {
+            const id = String(agentId || '');
+            if (!id) return '';
+            const info = state.agentActivity[id];
+            if (!info || !info.expiresAt || info.expiresAt <= Date.now()) return '';
+            return info.signal || '';
         }
 
         function getAgentCardsData() {
@@ -659,7 +733,7 @@ ${relationPart}`;
                 return '<div class="sim-hint">构建环境后会根据图谱人物自动生成 Agent 卡片</div>';
             }
             return `<div class="agent-list">${agents.map(agent => `
-                <div class="agent-card ${state.agentActivity[String(agent.id)] === 'speech' ? 'glow-speech' : state.agentActivity[String(agent.id)] === 'action' ? 'glow-action' : ''}">
+                <div class="agent-card ${getAgentSignal(agent.id) === 'speech' ? 'glow-speech' : getAgentSignal(agent.id) === 'action' ? 'glow-action' : ''}">
                     <div class="agent-card-name">${escapeHtml(agent.name)}（ID:${escapeHtml(agent.id)}）</div>
                     ${(groupVisibility['人物属性'] || groupVisibility['资产/财务'] || groupVisibility['休闲方式']) ? `<div class="agent-card-line"><b>性格</b>：${escapeHtml(agent.personality)}</div>
                     <div class="agent-card-line"><b>职业</b>：${escapeHtml(agent.occupation)}</div>` : ''}
@@ -1243,6 +1317,10 @@ ${JSON.stringify(neighborhood)}
             state.reasoningCards = [];
             state.roundRecords = [];
             state.agentActivity = {};
+            if (state.agentActivityCleanupTimer) {
+                clearTimeout(state.agentActivityCleanupTimer);
+                state.agentActivityCleanupTimer = null;
+            }
 
             addLog(`开始执行图谱驱动的多智能体推演，输出目录：${folderName}`, 'processing');
             pushReasoningCard(`推演开始，目录：${folderName}`, null, 'system');
@@ -1259,6 +1337,15 @@ ${JSON.stringify(neighborhood)}
                 rounds: Number(state.simConfig.rounds) || 1,
                 duration: Number(state.simConfig.duration) || 30,
                 customEvents: parseCustomEvents(state.simConfig.eventsInput),
+                onEventComplete: ({ round, eventIndex, event, graphData }) => {
+                    state.graphData = graphData;
+                    updateStats(graphData);
+                    markAgentActivity(event);
+                    const channel = `${event.channel?.online_offline || '未知'}/${event.channel?.chat_scope || '未知'}/${event.channel?.specific || '未指定'}`;
+                    const initiatorName = getAgentNameById(event.initiator_id);
+                    addLog(`第 ${round} 轮事件 ${eventIndex} 已实时更新图谱：${initiatorName} @ ${channel}`, 'processing');
+                    render();
+                },
                 onRoundComplete: ({ round, graphData, roundEvents = [] }) => {
                     state.graphData = graphData;
                     updateStats(graphData);
@@ -1623,14 +1710,14 @@ ${materialDigest}
             node.append('circle').attr('r', showType ? 17 : 12)
                 .attr('fill', d => entityTypeColors[typeGroups[d.type] || '其他'] || '#b2dfdb')
                 .attr('stroke', d => {
-                    const signal = state.agentActivity[String(d.id)];
+                    const signal = getAgentSignal(d.id);
                     if (signal === 'speech') return '#30d158';
                     if (signal === 'action') return '#ff453a';
                     return '#666';
                 })
-                .attr('stroke-width', d => state.agentActivity[String(d.id)] ? 3 : 2)
+                .attr('stroke-width', d => getAgentSignal(d.id) ? 3 : 2)
                 .style('filter', d => {
-                    const signal = state.agentActivity[String(d.id)];
+                    const signal = getAgentSignal(d.id);
                     if (signal === 'speech') return 'drop-shadow(0 0 8px rgba(48,209,88,0.9))';
                     if (signal === 'action') return 'drop-shadow(0 0 8px rgba(255,69,58,0.9))';
                     return 'none';
@@ -1687,6 +1774,7 @@ ${materialDigest}
             const runInfo = state.currentSimRun
                 ? `<div class="sim-hint">当前目录：<b>${state.currentSimRun.folderName}</b></div>`
                 : '<div class="sim-hint">完成推演后会生成带时间戳的目录与轮次文件映射</div>';
+            const llmCfg = getMergedLlmConfig();
             
             app.innerHTML = `
                 <nav class="top-navbar"><div class="nav-left"><div class="window-controls"><span class="window-dot red"></span><div class="logo"><span>星演</span></div><span class="window-dot yellow"></span></div></div><div class="nav-version">v1.0.0</div></nav>
@@ -1707,6 +1795,19 @@ ${materialDigest}
                                 <input class="sim-input" type="number" min="1" value="${state.expansionConfig.parallelCount}" onchange="onExpansionParallelChange(this.value)" ${state.isBuilding?'disabled':''}>
                                 <button class="btn-build" style="margin-top:8px" onclick="autoExpandSocialNetwork()" ${state.isBuilding?'disabled':''}>AI扩充人际网络</button>
                             </div>
+                        </div>
+                        <div class="prompt-section">
+                            <label class="form-label">LLM 接口配置：</label>
+                            <select class="sim-input" onchange="onLlmProviderChange(this.value)">
+                                <option value="minimax" ${llmCfg.provider === 'minimax' ? 'selected' : ''}>MiniMax</option>
+                                <option value="aliyun" ${llmCfg.provider === 'aliyun' ? 'selected' : ''}>阿里云 DashScope</option>
+                                <option value="ollama" ${llmCfg.provider === 'ollama' ? 'selected' : ''}>Ollama</option>
+                                <option value="openai_compatible" ${llmCfg.provider === 'openai_compatible' ? 'selected' : ''}>OpenAI兼容接口</option>
+                            </select>
+                            <input class="sim-input" style="margin-top:8px" placeholder="Base URL" value="${escapeHtml(llmCfg.baseUrl || '')}" onchange="onLlmConfigInput('baseUrl', this.value)">
+                            <input class="sim-input" style="margin-top:8px" placeholder="Model" value="${escapeHtml(llmCfg.model || '')}" onchange="onLlmConfigInput('model', this.value)">
+                            <input class="sim-input" style="margin-top:8px" type="password" placeholder="API Key（Ollama可留空）" value="${escapeHtml(llmCfg.apiKey || '')}" onchange="onLlmConfigInput('apiKey', this.value)">
+                            <input class="sim-input" style="margin-top:8px" type="number" min="0" max="2" step="0.1" value="${Number(llmCfg.temperature ?? 0.3)}" onchange="onLlmConfigInput('temperature', this.value)">
                         </div>
                         <div class="report-section">
                             <label class="form-label">报告主题：</label>
@@ -1857,6 +1958,8 @@ ${materialDigest}
         window.onReportGodViewToggle = onReportGodViewToggle;
         window.generateReportSeries = generateReportSeries;
         window.downloadReportMarkdown = downloadReportMarkdown;
+        window.onLlmProviderChange = onLlmProviderChange;
+        window.onLlmConfigInput = onLlmConfigInput;
     </script>
     <script src="multi_agent_sim.js"></script>
 </body>
