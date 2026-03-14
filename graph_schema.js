@@ -15,6 +15,7 @@
     { name: '地点', description: '涉及的地域（如：云南、老家）', group: '地点', color: '#d7ccc8' },
     { name: '关系事件', description: '交往过程中的关键节点（如：共同旅行、公益墙绘）', group: '关系事件', color: '#ffe0b2' },
     { name: '心理状态/创伤', description: '过往经历留下的心理印记（如：PUA经历、恐惧冲突）', group: '内心', color: '#e1bee7' },
+    { name: '记忆片段', description: 'Agent的重要记忆摘要', group: '内心', color: '#d1c4e9' },
     { name: '其他', description: '未能归类的辅助信息', group: '其他', color: '#b2dfdb' }
   ];
 
@@ -48,7 +49,10 @@
     { name: '发生地', description: '关系事件 → 地点', category: '事件行为', color: '#4caf50' },
     { name: '曾遭遇', description: '人物 → 心理状态/创伤', category: '事件行为', color: '#4caf50' },
     { name: '关注/干预', description: '亲友 → 另一方/关系', category: '事件行为', color: '#4caf50' },
-    { name: '推荐/建议', description: '密友 → 人物', category: '事件行为', color: '#4caf50' }
+    { name: '推荐/建议', description: '密友 → 人物', category: '事件行为', color: '#4caf50' },
+    { name: '记得', description: '人物 → 记忆片段', category: '记忆关系', color: '#9c27b0' },
+    { name: '关于', description: '记忆片段 → 人物', category: '记忆关系', color: '#9c27b0' },
+    { name: '发生在', description: '记忆片段 → 地点', category: '记忆关系', color: '#9c27b0' }
   ];
 
   const entityTypeDescriptions = ENTITY_TYPES

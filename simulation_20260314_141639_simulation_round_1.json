@@ -1,0 +1,130 @@
+{
+  "round": 1,
+  "timestamp": "2026-03-14T06:21:11.799Z",
+  "events": [
+    {
+      "index": 1,
+      "channel": {
+        "online_offline": "offline",
+        "chat_scope": "private",
+        "specific": "家庭群聊或电话"
+      },
+      "initiatorId": "10",
+      "receiverIds": [
+        "1",
+        "9"
+      ],
+      "location": "家中",
+      "dialogue": "微微（林薇），最近工作怎么样？那个甲方还总修改需求吗？你和陈默最近还好吗？妈妈想你们了，今晚回家吃饭吧，我做你喜欢的菜。",
+      "internalThought": "作为林薇的母亲，虽然本轮是第1轮还没有短期记忆，但基于母女天然的情感纽带，我本能地想要关心女儿。从背景信息看，林薇面临工作压力（甲方反复修改需求、担心AI替代），且曾有被PUA的经历，作为母亲自然会担心她的状态。同时她与陈默正在交往中，我也想了解他们的感情发展情况。此外，我也应该通知林薇父亲（夫妻间商量），一起关心女儿。",
+      "payload": {
+        "goal": "主动关心女儿林薇的近况，了解她与陈默的感情发展",
+        "priorityHint": 8,
+        "kgUpdates": {
+          "new_nodes": [],
+          "new_links": [],
+          "person_updates": []
+        },
+        "generatedBy": "agent_intent"
+      }
+    },
+    {
+      "index": 2,
+      "channel": {
+        "online_offline": "online",
+        "chat_scope": "private",
+        "specific": "微信私聊"
+      },
+      "initiatorId": "3",
+      "receiverIds": [
+        "1"
+      ],
+      "location": "线上",
+      "dialogue": "晴晴~最近怎么样？听说你最近甲方那边需求改得挺频繁的，还能应付过来吗？有什么需要帮忙的随时跟我说哈~",
+      "internalThought": "作为林薇的密友（ISTP虽然偏内敛，但创业CEO的身份让我更懂得主动社交的重要性），且林薇近期面临多重压力（甲方反复修改需求、担心AI替代插画师），我应该主动关心一下。虽然没有短期记忆，但根据全局背景，林薇是我的闺蜜，我应该主动维系这段关系。ISTP虽不是最热情的的性格，但作为CEO我还是懂得社交重要性的。",
+      "payload": {
+        "goal": "主动关心密友林薇的近况，维系闺蜜关系",
+        "priorityHint": 7,
+        "kgUpdates": {
+          "new_nodes": [],
+          "new_links": [],
+          "person_updates": []
+        },
+        "generatedBy": "agent_intent"
+      }
+    },
+    {
+      "index": 3,
+      "channel": {
+        "online_offline": "online",
+        "chat_scope": "private",
+        "specific": "私信"
+      },
+      "initiatorId": "5",
+      "receiverIds": [
+        "1"
+      ],
+      "location": "线上",
+      "dialogue": "亲爱的，最近怎么样？看你之前工作上遇到甲方反复修改需求的情况，心里挺担心的。还有AI对插画师的影响这件小事，你想聊的话随时找我。我在的～",
+      "internalThought": "作为ENFJ型人格和林薇的密友，我倾向于主动关心朋友。基于背景信息，林薇近期经历了'忘记纪念日'事件，同时面临工作压力（甲方反复修改需求）和对AI替代插画师的担忧。作为密友，我应该主动表达关心和支持，这是符合我ENFJ人格特质的行为。",
+      "payload": {
+        "goal": "关心林薇近况，表达支持",
+        "priorityHint": 7,
+        "kgUpdates": {
+          "new_nodes": [],
+          "new_links": [],
+          "person_updates": []
+        },
+        "generatedBy": "agent_intent"
+      }
+    },
+    {
+      "index": 4,
+      "channel": {
+        "online_offline": "online",
+        "chat_scope": "private",
+        "specific": "微信私聊，文字+表情包"
+      },
+      "initiatorId": "1",
+      "receiverIds": [
+        "2"
+      ],
+      "location": "unknown",
+      "dialogue": "林薇在微信上给陈默发了一条消息：'默，最近工作压力好大呀～云南那边气候怎么样？我们行程规划得差不多了吧？我想去看泸沽湖的水性杨花，还想拍一些有民族风的照片当素材～'（使用 softer emoji和省略号来表达亲密感，提到想拍素材则是结合自己的插画师职业）",
+      "internalThought": "林薇内心充满期待又有些不安。作为INFP双鱼座，她对这次云南旅行有着浪漫的幻想，希望能在旅途中感受到陈默的用心和情感的深度。她记得上次自己忘记了纪念日，这次想通过旅行修复关系。但她也担心陈默太务实不懂浪漫，旅行中可能会因为预算等问题产生分歧。同时她想起自己曾被PUA的经历，在亲密关系中偶尔会敏感多虑。",
+      "payload": {
+        "injectedEvent": "共同旅行（云南10日游）",
+        "round": 1,
+        "kgUpdates": {
+          "new_nodes": [],
+          "new_links": [
+            {
+              "source": "林薇",
+              "target": "云南旅行规划",
+              "relation": "参与事件"
+            },
+            {
+              "source": "陈默",
+              "target": "云南旅行规划",
+              "relation": "参与事件"
+            }
+          ],
+          "person_updates": [
+            {
+              "person": "林薇",
+              "update": "开始对云南旅行产生具体期待，情感需求指向共同体验和浪漫感受"
+            },
+            {
+              "person": "陈默",
+              "update": "收到林薇的旅行讨论邀请，需要回应行程安排和预算问题"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "graphStats": {
+    "nodes": 66,
+    "links": 76
+  }
+}

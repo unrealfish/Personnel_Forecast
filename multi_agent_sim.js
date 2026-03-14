@@ -72,7 +72,8 @@
       importance = 0,
       participants = [],
       topic = '',
-      round = 1
+      round = 1,
+      location = 'unknown'
     }) {
       this.id = `mem_${timestamp}_${Math.random().toString(16).slice(2, 6)}`;
       this.eventId = eventId;
@@ -83,6 +84,7 @@
       this.participants = participants;
       this.topic = topic;
       this.round = round;
+      this.location = location;
       this.accessCount = 0;
       this.lastAccessed = timestamp;
     }
@@ -101,7 +103,8 @@
       content = '',
       relatedPeople = [],
       emotionTrend = '',
-      importance = 0
+      importance = 0,
+      location = 'unknown'
     }) {
       this.id = `summary_${Date.now()}_${Math.random().toString(16).slice(2, 6)}`;
       this.topic = topic;
@@ -111,6 +114,7 @@
       this.relatedPeople = relatedPeople;
       this.emotionTrend = emotionTrend;
       this.importance = importance;
+      this.location = location;
       this.createdAt = Date.now();
     }
   }
@@ -141,7 +145,8 @@
         importance,
         participants: this._extractParticipants(event),
         topic: event.payload?.goal || event.payload?.topic || '一般社交',
-        round
+        round,
+        location: event.location || 'unknown'
       });
 
       this.shortTerm.push(entry);
@@ -212,6 +217,15 @@
           const relatedPeople = [...new Set(entries.flatMap(e => e.participants))];
           const emotions = entries.map(e => e.emotion);
           const emotionTrend = this._analyzeEmotionTrend(emotions);
+          // 提取出现频率最高的地点
+          const locationCounts = {};
+          entries.forEach(e => {
+            if (e.location && e.location !== 'unknown') {
+              locationCounts[e.location] = (locationCounts[e.location] || 0) + 1;
+            }
+          });
+          const mostFrequentLocation = Object.entries(locationCounts)
+            .sort((a, b) => b[1] - a[1])[0]?.[0] || 'unknown';
 
           const summary = new MemorySummary({
             topic,
@@ -220,7 +234,8 @@
             content: `关于"${topic}"的${entries.length}次互动：${content.substring(0, 200)}...`,
             relatedPeople,
             emotionTrend,
-            importance: Math.max(...entries.map(e => e.importance))
+            importance: Math.max(...entries.map(e => e.importance)),
+            location: mostFrequentLocation
           });
 
           summaries.push(summary);
@@ -301,26 +316,45 @@
         person_updates: []
       };
 
+      const existingMemoryNodes = new Set();
+
       for (const summary of this.midTerm) {
         const summaryNodeId = `memory_${this.agentId}_${summary.id}`;
-        updates.new_nodes.push({
-          name: `记忆：${summary.topic}`,
-          type: '记忆片段',
-          description: summary.content
-        });
+        
+        // 检查节点是否已存在
+        if (!existingMemoryNodes.has(summaryNodeId)) {
+          updates.new_nodes.push({
+            id: summaryNodeId,
+            name: `记忆：${summary.topic}`,
+            type: '记忆片段',
+            description: summary.content,
+            importance: summary.importance,
+            emotion: summary.emotionTrend
+          });
+          existingMemoryNodes.add(summaryNodeId);
 
-        updates.new_links.push({
-          source: this.agentId,
-          target: summaryNodeId,
-          relation: '记得'
-        });
+          updates.new_links.push({
+            source: this.agentId,
+            target: summaryNodeId,
+            relation: '记得'
+          });
 
-        for (const personId of summary.relatedPeople) {
-          if (personId !== this.agentId) {
+          for (const personId of summary.relatedPeople) {
+            if (personId !== this.agentId) {
+              updates.new_links.push({
+                source: summaryNodeId,
+                target: personId,
+                relation: '关于'
+              });
+            }
+          }
+
+          // 添加地点关联
+          if (summary.location && summary.location !== 'unknown') {
             updates.new_links.push({
               source: summaryNodeId,
-              target: personId,
-              relation: '关于'
+              target: summary.location,
+              relation: '发生在'
             });
           }
         }
@@ -819,15 +853,49 @@
 
   function applyKnowledgeGraphUpdates(nextGraph, kgUpdates = {}, indexes) {
     const personByName = new Map((nextGraph.nodes || []).filter((n) => n.type === '人物').map((n) => [n.name, n]));
+    const nodeById = new Map((nextGraph.nodes || []).map((n) => [normalizeId(n.id), n]));
+    
     (kgUpdates.new_nodes || []).forEach((node) => {
       if (!node?.name) return;
-      ensureNodeByName(nextGraph, node.name, node.type || '其他', node.description || '推演新增实体');
+      // 检查节点是否已存在（优先按ID查找）
+      let existingNode = nodeById.get(normalizeId(node.id));
+      if (!existingNode) {
+        // 按名称查找
+        existingNode = nextGraph.nodes.find((n) => n.name === node.name);
+      }
+      if (!existingNode) {
+        // 创建新节点，保留原始ID
+        const newNode = {
+          id: node.id || `sim_node_${Date.now()}_${Math.random().toString(16).slice(2, 7)}`,
+          name: node.name,
+          type: node.type || '其他',
+          description: node.description || '推演新增实体',
+          importance: node.importance,
+          emotion: node.emotion
+        };
+        nextGraph.nodes.push(newNode);
+        nodeById.set(normalizeId(newNode.id), newNode);
+      }
     });
 
     (kgUpdates.new_links || []).forEach((link) => {
       if (!link?.source || !link?.target || !link?.relation) return;
-      const sourceNode = indexes.nodeById.get(normalizeId(link.source)) || personByName.get(link.source) || ensureNodeByName(nextGraph, link.source);
-      const targetNode = indexes.nodeById.get(normalizeId(link.target)) || personByName.get(link.target) || ensureNodeByName(nextGraph, link.target);
+      let sourceNode = indexes.nodeById.get(normalizeId(link.source)) || personByName.get(link.source);
+      if (!sourceNode) {
+        // 检查是否是新创建的节点
+        sourceNode = nodeById.get(normalizeId(link.source));
+        if (!sourceNode) {
+          sourceNode = ensureNodeByName(nextGraph, link.source);
+        }
+      }
+      let targetNode = indexes.nodeById.get(normalizeId(link.target)) || personByName.get(link.target);
+      if (!targetNode) {
+        // 检查是否是新创建的节点
+        targetNode = nodeById.get(normalizeId(link.target));
+        if (!targetNode) {
+          targetNode = ensureNodeByName(nextGraph, link.target);
+        }
+      }
       upsertLink(nextGraph, { source: sourceNode.id, target: targetNode.id, relation: link.relation });
     });
 
