@@ -1159,6 +1159,12 @@
     const onEventComplete = typeof options.onEventComplete === 'function' ? options.onEventComplete : null;
     const maxEventsPerRound = Math.max(1, Number(options.maxEventsPerRound) || 64);
     const memoryWindow = Math.max(1, Number(options.memoryWindow) || 8);
+    const intentParallelCount = Math.max(1, Number(options.intentParallelCount) || 1);
+    const uiYieldMs = Math.max(0, Number(options.uiYieldMs) || 0);
+
+    const yieldToEventLoop = async () => {
+      await new Promise((resolve) => setTimeout(resolve, uiYieldMs));
+    };
 
     const indexes = createGraphIndexes(graphData);
     const personNodes = indexes.nodes.filter((n) => n.type === '人物');
@@ -1229,23 +1235,38 @@
       let roundEventCounter = 0;
 
       const intentCandidates = [];
-      for (const agent of env.agents.values()) {
-        const intent = await agent.proposeIntent({
-          llm,
-          indexes: currentIndexes,
-          graphSummary,
-          eventHistory: bus.eventHistory,
-          memoryWindow,
-          round,
-          env
+      const agents = [...env.agents.values()];
+      const effectiveParallelCount = Math.min(intentParallelCount, agents.length || 1);
+      if (effectiveParallelCount > 1) {
+        logger(`[Demo] 第${round}轮意图并行轮询：并行数=${effectiveParallelCount}，Agent总数=${agents.length}`);
+      }
+      for (let i = 0; i < agents.length; i += effectiveParallelCount) {
+        const batchAgents = agents.slice(i, i + effectiveParallelCount);
+        const batchIntents = await Promise.all(
+          batchAgents.map(async (agent) => {
+            const intent = await agent.proposeIntent({
+              llm,
+              indexes: currentIndexes,
+              graphSummary,
+              eventHistory: bus.eventHistory,
+              memoryWindow,
+              round,
+              env
+            });
+            return { agent, intent };
+          })
+        );
+
+        batchIntents.forEach(({ agent, intent }) => {
+          if (!intent?.event) return;
+          const priority = computeAgentPriority(agent, intent);
+          intentCandidates.push({
+            priority,
+            agentName: agent.profile.name,
+            ...intent
+          });
         });
-        if (!intent?.event) continue;
-        const priority = computeAgentPriority(agent, intent);
-        intentCandidates.push({
-          priority,
-          agentName: agent.profile.name,
-          ...intent
-        });
+        await yieldToEventLoop();
       }
 
       intentCandidates.sort((a, b) => b.priority - a.priority);
@@ -1267,6 +1288,7 @@
             graphData: mutableGraph
           });
         }
+        await yieldToEventLoop();
       }
 
       for (const event of injectedEvents) {
@@ -1286,6 +1308,7 @@
             graphData: mutableGraph
           });
         }
+        await yieldToEventLoop();
       }
       logger(`[Demo] ===== 第 ${round} 轮完成：执行 ${roundEvents.length} 个事件，累计 ${bus.eventHistory.length} 条历史 =====`);
       if (onRoundComplete) {
@@ -1296,6 +1319,7 @@
           roundEvents
         });
       }
+      await yieldToEventLoop();
     }
     logger('[Demo] 推演任务完成。');
 
