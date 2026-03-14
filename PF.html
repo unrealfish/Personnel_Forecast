@@ -159,9 +159,10 @@
 
         .people-section { flex: 1; display: flex; flex-direction: column; min-height: 0; }
         .agent-list { display: flex; flex-direction: column; gap: 8px; flex: 1; min-height: 0; overflow-y: auto; }
-        .agent-card { border: 1px solid rgba(10,132,255,0.22); border-radius: 10px; padding: 8px; background: rgba(255,255,255,0.92); }
+        .agent-card { border: 1px solid rgba(10,132,255,0.22); border-radius: 10px; padding: 8px; background: rgba(255,255,255,0.92); cursor: pointer; }
         .agent-card-name { font-size: 12px; font-weight: 600; color: #1f3b66; margin-bottom: 4px; }
         .agent-card-line { font-size: 11px; color: #555; line-height: 1.45; margin-bottom: 2px; }
+        .agent-card-intro { font-size: 11px; color: #555; line-height: 1.5; max-height: 84px; overflow-y: auto; padding-right: 4px; white-space: pre-wrap; word-break: break-word; }
 
         .agent-card.glow-speech { border-color: rgba(48,209,88,0.9); box-shadow: 0 0 0 1px rgba(48,209,88,0.6), 0 0 18px rgba(48,209,88,0.45); }
         .agent-card.glow-action { border-color: rgba(255,69,58,0.9); box-shadow: 0 0 0 1px rgba(255,69,58,0.6), 0 0 18px rgba(255,69,58,0.45); }
@@ -221,6 +222,7 @@
                 envReady: false,
                 rounds: 2,
                 duration: 30,
+                parallelCount: 1,
                 eventsInput: '',
                 recommendedRounds: 2,
                 recommendedDuration: 30,
@@ -719,10 +721,7 @@ ${relationPart}`;
                 return {
                     id: person.id,
                     name: person.name,
-                    personality: pick('性格为') || '未设置',
-                    occupation: pick('职业为') || '未设置',
-                    coreNeed: pick('渴求') || '未设置',
-                    values: pick('持有观点') || '未设置'
+                    intro: person.description || pick('性格为') || pick('职业为') || '暂无人物简介'
                 };
             });
         }
@@ -733,12 +732,10 @@ ${relationPart}`;
                 return '<div class="sim-hint">构建环境后会根据图谱人物自动生成 Agent 卡片</div>';
             }
             return `<div class="agent-list">${agents.map(agent => `
-                <div class="agent-card ${getAgentSignal(agent.id) === 'speech' ? 'glow-speech' : getAgentSignal(agent.id) === 'action' ? 'glow-action' : ''}">
+                <div class="agent-card ${getAgentSignal(agent.id) === 'speech' ? 'glow-speech' : getAgentSignal(agent.id) === 'action' ? 'glow-action' : ''}" onclick="showEntityDetailById('${escapeHtml(String(agent.id))}')">
                     <div class="agent-card-name">${escapeHtml(agent.name)}（ID:${escapeHtml(agent.id)}）</div>
-                    ${(groupVisibility['人物属性'] || groupVisibility['资产/财务'] || groupVisibility['休闲方式']) ? `<div class="agent-card-line"><b>性格</b>：${escapeHtml(agent.personality)}</div>
-                    <div class="agent-card-line"><b>职业</b>：${escapeHtml(agent.occupation)}</div>` : ''}
-                    ${groupVisibility['内心'] ? `<div class="agent-card-line"><b>核心需求</b>：${escapeHtml(agent.coreNeed)}</div>
-                    <div class="agent-card-line"><b>观点</b>：${escapeHtml(agent.values)}</div>` : ''}
+                    <div class="agent-card-line"><b>人物简介</b></div>
+                    <div class="agent-card-intro">${escapeHtml(agent.intro)}</div>
                 </div>
             `).join('')}</div>`;
         }
@@ -1301,6 +1298,17 @@ ${JSON.stringify(neighborhood)}
             if (detail) detail.remove();
         }
 
+        function showEntityDetailById(entityId) {
+            const id = String(entityId || '');
+            const entity = (state.graphData?.nodes || []).find(n => String(n.id) === id);
+            if (!entity) {
+                addLog(`未找到实体：${id}`, 'warning');
+                return;
+            }
+            showEntityDetail(entity);
+        }
+
+
         async function runSandboxSimulation() {
             if (!window.runMultiAgentRoutingDemo) { addLog('多智能体模块未加载', 'error'); return; }
             if (state.graphData.nodes.length === 0) { addLog('请先构建或导入知识图谱', 'info'); return; }
@@ -1336,6 +1344,7 @@ ${JSON.stringify(neighborhood)}
                 },
                 rounds: Number(state.simConfig.rounds) || 1,
                 duration: Number(state.simConfig.duration) || 30,
+                intentParallelCount: Math.max(1, Number(state.simConfig.parallelCount) || 1),
                 customEvents: parseCustomEvents(state.simConfig.eventsInput),
                 onEventComplete: ({ round, eventIndex, event, graphData }) => {
                     state.graphData = graphData;
@@ -1481,6 +1490,11 @@ ${JSON.stringify(neighborhood)}
         }
 
         function onSimConfigInput(key, value) {
+            if (key === 'rounds' || key === 'duration' || key === 'parallelCount') {
+                const n = Number(value);
+                state.simConfig[key] = Number.isFinite(n) && n > 0 ? Math.floor(n) : 1;
+                return;
+            }
             state.simConfig[key] = value;
         }
         
@@ -1833,6 +1847,8 @@ ${materialDigest}
                                     <input class="sim-input" type="number" min="1" value="${state.simConfig.rounds}" onchange="onSimConfigInput('rounds', this.value)" ${!state.simConfig.envReady?'disabled':''} placeholder="轮次">
                                     <input class="sim-input" type="number" min="5" value="${state.simConfig.duration}" onchange="onSimConfigInput('duration', this.value)" ${!state.simConfig.envReady?'disabled':''} placeholder="时长(min)">
                                 </div>
+                                <label class="form-label" style="margin-top:8px">人物轮询并行数：</label>
+                                <input class="sim-input" type="number" min="1" value="${state.simConfig.parallelCount}" onchange="onSimConfigInput('parallelCount', this.value)" ${!state.simConfig.envReady?'disabled':''} placeholder="例如 5">
                                 <div class="sim-hint">事件输入格式：<b>轮次:事件描述</b>，例如 <b>2:发生争执</b></div>
                                 <textarea class="sim-events" onchange="onSimConfigInput('eventsInput', this.value)" ${!state.simConfig.envReady?'disabled':''}>${state.simConfig.eventsInput}</textarea>
                                 <button class="btn-build" style="margin-top:8px" onclick="runSandboxSimulation()" ${!state.simConfig.envReady?'disabled':''}>▶ 推演</button>
